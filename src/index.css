@@ -1,0 +1,189 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,300..800;1,300..800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Register Krypton custom thematic colors responsive to dark and light classes */
+  --color-slate-105: var(--slate-105);
+  --color-slate-150: var(--slate-150);
+  --color-slate-205: var(--slate-205);
+  --color-slate-250: var(--slate-250);
+  --color-slate-330: var(--slate-330);
+  --color-slate-350: var(--slate-350);
+  --color-slate-355: var(--slate-355);
+  --color-slate-405: var(--slate-405);
+  --color-slate-450: var(--slate-450);
+  --color-slate-455: var(--slate-455);
+  --color-slate-505: var(--slate-505);
+  --color-slate-550: var(--slate-550);
+  --color-slate-605: var(--slate-605);
+  --color-slate-650: var(--slate-650);
+  --color-slate-655: var(--slate-655);
+  --color-slate-750: var(--slate-750);
+  --color-slate-755: var(--slate-755);
+  --color-slate-805: var(--slate-805);
+  --color-slate-850: var(--slate-850);
+  --color-slate-855: var(--slate-855);
+  --color-slate-905: var(--slate-905);
+  --color-slate-955: var(--slate-955);
+
+  --color-emerald-55: var(--emerald-55);
+  --color-emerald-505: var(--emerald-505);
+  --color-emerald-450: var(--emerald-450);
+  --color-emerald-955: var(--emerald-955);
+
+  --color-rose-505: var(--rose-505);
+  --color-rose-955: var(--rose-955);
+  --color-indigo-550: var(--indigo-550);
+  --color-indigo-505: var(--indigo-505);
+}
+
+:root {
+  /* Default: Balanced premium Light theme colors */
+  --slate-105: #f8fafc;
+  --slate-150: #f1f5f9;
+  --slate-205: #cbd5e1;
+  --slate-250: #94a3b8;
+  --slate-330: #94a3b8;
+  --slate-350: #64748b;
+  --slate-355: #475569;
+  --slate-405: #475569;
+  --slate-450: #64748b;
+  --slate-455: #475569;
+  --slate-505: #334155;
+  --slate-550: #1e293b;
+  --slate-605: #0f172a;
+  --slate-650: #0f172a;
+  --slate-655: #0f172a;
+  --slate-750: #0f172a;
+  --slate-755: #0f172a;
+  --slate-805: #1e293b;
+  --slate-850: #e2e8f0;
+  --slate-855: #cbd5e1;
+  --slate-905: #ffffff;
+  --slate-955: #f8fafc;
+
+  --emerald-55: #ecfdf5;
+  --emerald-505: #10b981;
+  --emerald-450: #059669;
+  --emerald-955: #d1fae5;
+
+  --rose-505: #ef4444;
+  --rose-955: #fee2e2;
+  --indigo-550: #4f46e5;
+  --indigo-505: #6366f1;
+}
+
+.dark {
+  /* Dynamic: Eye-safe midnight slate Dark theme colors */
+  --slate-105: #0f172a;
+  --slate-150: #e2e8f0;
+  --slate-205: #334155;
+  --slate-250: #cbd5e1;
+  --slate-330: #94a3b8;
+  --slate-350: #cbd5e1;
+  --slate-355: #94a3b8;
+  --slate-405: #cbd5e1;
+  --slate-450: #94a3b8;
+  --slate-455: #cbd5e1;
+  --slate-505: #f1f5f9;
+  --slate-550: #e2e8f0;
+  --slate-605: #f1f5f9;
+  --slate-650: #e2e8f0;
+  --slate-655: #94a3b8;
+  --slate-750: #cbd5e1;
+  --slate-755: #f1f5f9;
+  --slate-805: #f1f5f9;
+  --slate-850: #1e293b;
+  --slate-855: #1e293b;
+  --slate-905: #090d16;
+  --slate-955: #020617;
+
+  --emerald-55: #022c22;
+  --emerald-505: #10b981;
+  --emerald-450: #34d399;
+  --emerald-955: #022c22;
+
+  --rose-505: #ef4444;
+  --rose-955: #4c0519;
+  --indigo-550: #6366f1;
+  --indigo-505: #4f46e5;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ==================== SENIOR & ACCESSIBILITY COGNITIVE GUIDES ==================== */
+
+/* Accessibility Font scales */
+.accessibility-scale-large {
+  font-size: 114% !important;
+}
+.accessibility-scale-large h1,
+.accessibility-scale-large .text-xl,
+.accessibility-scale-large .text-2xl,
+.accessibility-scale-large .text-3xl {
+  font-size: 1.28em !important;
+  line-height: 1.25 !important;
+  letter-spacing: -0.015em !important;
+}
+.accessibility-scale-large p,
+.accessibility-scale-large span,
+.accessibility-scale-large button,
+.accessibility-scale-large input,
+.accessibility-scale-large select,
+.accessibility-scale-large label {
+  font-size: 1.15em !important;
+  font-weight: 600 !important;
+}
+.accessibility-scale-large .text-[9px],
+.accessibility-scale-large .text-[10px],
+.accessibility-scale-large .text-xs {
+  font-size: 0.95em !important;
+}
+
+.accessibility-scale-small {
+  font-size: 90% !important;
+}
+
+/* High Contrast mode conforming to WCAG AAA color profiles */
+.accessibility-high-contrast {
+  filter: contrast(1.18);
+}
+.accessibility-high-contrast button {
+  border-width: 1.5px !important;
+  border-color: currentColor !important;
+  font-weight: 800 !important;
+}
+.accessibility-high-contrast input, 
+.accessibility-high-contrast select {
+  border-width: 2px !important;
+  border-color: #000000 !important;
+}
+.dark .accessibility-high-contrast input,
+.dark .accessibility-high-contrast select {
+  border-color: #ffffff !important;
+}
+
+/* Simple Keyboard highlights focus outlines */
+.accessibility-keyboard-focus *:focus,
+.accessibility-keyboard-focus *:focus-within {
+  outline: 3px solid #10b981 !important;
+  outline-offset: 2px !important;
+}
+

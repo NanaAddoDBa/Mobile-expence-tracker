@@ -1,0 +1,6 @@
+{
+  "name": "Mobile Expense Tracker",
+  "description": "An elegant, mobile-first expense tracker and budget planner with custom alerts, category-based reports, and visual analytics.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
