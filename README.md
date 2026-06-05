@@ -384,6 +384,22 @@ docs/visual-qa-checklist.md
 
 Use these before publishing major changes.
 
+## Production Planning Docs
+
+Planning docs for turning the mock frontend into a real backend-backed application are available in:
+
+```text
+docs/backend-v1-technical-spec.md
+docs/product-boundary.md
+docs/data-model.md
+docs/privacy-and-consent.md
+docs/open-banking-sync-strategy.md
+docs/security-baseline.md
+docs/currency-strategy.md
+```
+
+The recommended next implementation milestone is Backend V1: real authentication, PostgreSQL persistence, user-owned expenses, budgets, goals, settings, export/delete behavior, and audit logs.
+
 ## Current Limitations
 
 This is a frontend-focused project. It does not yet include:
