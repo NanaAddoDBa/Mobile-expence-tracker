@@ -8,6 +8,7 @@ This project is built as a realistic frontend foundation for a real-world expens
 
 The goal of this app is to help users:
 
+<<<<<<< HEAD
 - Record manual expenses.
 - Review expenses by category, source, and payment method.
 - Create and monitor budgets.
@@ -16,6 +17,16 @@ The goal of this app is to help users:
 - Connect mock financial accounts through a guided read-only workflow.
 - Import mock expenses from connected accounts.
 - Manage local demo data, privacy actions, settings, and accessibility preferences.
+=======
+* Record manual expenses.
+* Review expenses by category, source, and payment method.
+* Create and monitor budgets.
+* Track savings goals.
+* Scan receipts using a mock OCR flow.
+* Connect mock financial accounts through a guided read-only workflow.
+* Import mock expenses from connected accounts.
+* Manage local demo data, privacy actions, settings, and accessibility preferences.
+>>>>>>> 65ff6e7fa40a9cdd1dcaeebbc03971b7210ef984
 
 The app is intentionally focused on expense tracking and budget management. It is not a banking app, payment app, investment platform, or regulated financial advice tool.
 
@@ -25,6 +36,7 @@ This project is mock-only in its current version.
 
 It does **not**:
 
+<<<<<<< HEAD
 - Connect to real banks.
 - Connect to real cards or digital wallets.
 - Use real Open Banking APIs.
@@ -34,11 +46,23 @@ It does **not**:
 - Stop, block, approve, or control payments.
 - Store real banking credentials.
 - Provide regulated financial, tax, legal, banking, or investment advice.
+=======
+* Connect to real banks.
+* Connect to real cards or digital wallets.
+* Use real Open Banking APIs.
+* Use real OCR APIs.
+* Move money.
+* Send payments.
+* Stop, block, approve, or control payments.
+* Store real banking credentials.
+* Provide regulated financial, tax, legal, banking, or investment advice.
+>>>>>>> 65ff6e7fa40a9cdd1dcaeebbc03971b7210ef984
 
 Connected accounts are simulated read-only mock connections. Receipt scanning uses mock OCR data. Authentication is local mock authentication. Data is stored locally for demo and development purposes only.
 
 ## Tech Stack
 
+<<<<<<< HEAD
 - Vite
 - React
 - TypeScript
@@ -49,6 +73,18 @@ Connected accounts are simulated read-only mock connections. Receipt scanning us
 - Lucide React icons
 - Local mock repositories and services
 - Browser local storage for mock persistence
+=======
+* Vite
+* React
+* TypeScript
+* Tailwind CSS
+* Vitest
+* React Testing Library
+* D3 for charting
+* Lucide React icons
+* Local mock repositories and services
+* Browser local storage for mock persistence
+>>>>>>> 65ff6e7fa40a9cdd1dcaeebbc03971b7210ef984
 
 ## Core Features
 
@@ -56,11 +92,19 @@ Connected accounts are simulated read-only mock connections. Receipt scanning us
 
 The dashboard gives users an overview of their current expense tracking state. On first run, the app should start empty and guide the user toward setup actions such as:
 
+<<<<<<< HEAD
 - Add first expense
 - Connect mock account
 - Scan receipt
 - Create budget
 - Load sample data
+=======
+* Add first expense
+* Connect mock account
+* Scan receipt
+* Create budget
+* Load sample data
+>>>>>>> 65ff6e7fa40a9cdd1dcaeebbc03971b7210ef984
 
 When data exists, the dashboard summarizes spending, budgets, recent expenses, recurring expenses, source mix, and spending observations.
 
@@ -68,6 +112,7 @@ When data exists, the dashboard summarizes spending, budgets, recent expenses, r
 
 The Expenses feature supports:
 
+<<<<<<< HEAD
 - Manual expense creation
 - Expense editing
 - Expense deletion with confirmation
@@ -76,6 +121,16 @@ The Expenses feature supports:
 - Source badges for Manual, Receipt, Imported, and Recurring expenses
 - Imported expense metadata such as source account, import batch, and external transaction ID
 - Receipt-created expense metadata such as receipt ID
+=======
+* Manual expense creation
+* Expense editing
+* Expense deletion with confirmation
+* Search and filtering
+* Category and payment method metadata
+* Source badges for Manual, Receipt, Imported, and Recurring expenses
+* Imported expense metadata such as source account, import batch, and external transaction ID
+* Receipt-created expense metadata such as receipt ID
+>>>>>>> 65ff6e7fa40a9cdd1dcaeebbc03971b7210ef984
 
 Expense source and payment method are intentionally separate. For example, an expense may be imported from a connected account but still have a payment method such as debit card or digital wallet.
 
@@ -83,10 +138,17 @@ Expense source and payment method are intentionally separate. For example, an ex
 
 The Budget Manager supports:
 
+<<<<<<< HEAD
 - Creating category-based budgets
 - Tracking spending against budget limits
 - Budget status labels such as safe, warning, and over budget
 - Budget observations based on expenses saved in the app
+=======
+* Creating category-based budgets
+* Tracking spending against budget limits
+* Budget status labels such as safe, warning, and over budget
+* Budget observations based on expenses saved in the app
+>>>>>>> 65ff6e7fa40a9cdd1dcaeebbc03971b7210ef984
 
 Budgets are planning limits created by the user or loaded through sample data. They are not bank-provided budgets.
 
@@ -94,11 +156,19 @@ Budgets are planning limits created by the user or loaded through sample data. T
 
 The Goals feature supports:
 
+<<<<<<< HEAD
 - Creating savings goals
 - Setting target amounts and target dates
 - Recording manual savings contributions
 - Viewing progress toward goals
 - Showing planning calculations such as suggested monthly contribution
+=======
+* Creating savings goals
+* Setting target amounts and target dates
+* Recording manual savings contributions
+* Viewing progress toward goals
+* Showing planning calculations such as suggested monthly contribution
+>>>>>>> 65ff6e7fa40a9cdd1dcaeebbc03971b7210ef984
 
 Savings goals are planning records only. The app does not move money into any real savings account.
 
@@ -106,10 +176,17 @@ Savings goals are planning records only. The app does not move money into any re
 
 The Receipts feature supports a mock receipt scanning workflow:
 
+<<<<<<< HEAD
 - Upload or simulate a receipt
 - Run mock OCR extraction
 - Review extracted vendor, date, total amount, category, payment method, and notes
 - Save the reviewed receipt as an expense
+=======
+* Upload or simulate a receipt
+* Run mock OCR extraction
+* Review extracted vendor, date, total amount, category, payment method, and notes
+* Save the reviewed receipt as an expense
+>>>>>>> 65ff6e7fa40a9cdd1dcaeebbc03971b7210ef984
 
 Receipt-created expenses should preserve receipt source metadata and a receipt ID. No real OCR provider is used.
 
@@ -135,6 +212,7 @@ Connected account cards should show account status, read-only access, last impor
 
 The Profile and Settings area includes:
 
+<<<<<<< HEAD
 - Connected Accounts
 - Profile information
 - Appearance
@@ -143,6 +221,16 @@ The Profile and Settings area includes:
 - Privacy
 - Security
 - Demo Tools
+=======
+* Connected Accounts
+* Profile information
+* Appearance
+* Notifications
+* Accessibility
+* Privacy
+* Security
+* Demo Tools
+>>>>>>> 65ff6e7fa40a9cdd1dcaeebbc03971b7210ef984
 
 Settings that are functional should persist locally. Settings that are not implemented as real backend features should be clearly marked as mock-only or coming later.
 
@@ -152,11 +240,19 @@ Demo Tools are used to control local sample data.
 
 Expected demo actions include:
 
+<<<<<<< HEAD
 - Load starter sample data
 - Reset sample data
 - Clear app data
 - Show local data counts
 - Import from connected mock accounts when available
+=======
+* Load starter sample data
+* Reset sample data
+* Clear app data
+* Show local data counts
+* Import from connected mock accounts when available
+>>>>>>> 65ff6e7fa40a9cdd1dcaeebbc03971b7210ef984
 
 Sample data should be opt-in. The app should not silently create demo expenses, budgets, goals, or connected accounts on first run.
 
@@ -170,10 +266,17 @@ How the expense entered the app.
 
 Examples:
 
+<<<<<<< HEAD
 - `manual`
 - `receipt_scan`
 - `connected_account`
 - `recurring_forecast`
+=======
+* `manual`
+* `receipt_scan`
+* `connected_account`
+* `recurring_forecast`
+>>>>>>> 65ff6e7fa40a9cdd1dcaeebbc03971b7210ef984
 
 ### Payment Method
 
@@ -181,11 +284,19 @@ How the expense was paid.
 
 Examples:
 
+<<<<<<< HEAD
 - `cash`
 - `debit_card`
 - `credit_card`
 - `digital_wallet`
 - `bank_transfer`
+=======
+* `cash`
+* `debit_card`
+* `credit_card`
+* `digital_wallet`
+* `bank_transfer`
+>>>>>>> 65ff6e7fa40a9cdd1dcaeebbc03971b7210ef984
 
 ### Connected Account
 
@@ -193,10 +304,17 @@ A mock read-only source that can import mock transactions.
 
 Examples:
 
+<<<<<<< HEAD
 - `checking`
 - `savings`
 - `credit_card`
 - `digital_wallet`
+=======
+* `checking`
+* `savings`
+* `credit_card`
+* `digital_wallet`
+>>>>>>> 65ff6e7fa40a9cdd1dcaeebbc03971b7210ef984
 
 These concepts should not be mixed. A connected account is not a payment method. A receipt source is not a payment method. A recurring forecast is not a real imported transaction.
 
@@ -245,6 +363,7 @@ This frontend uses local mock persistence for development and portfolio demonstr
 
 Current local data may include:
 
+<<<<<<< HEAD
 - expenses
 - budgets
 - goals
@@ -253,6 +372,16 @@ Current local data may include:
 - settings
 - mock user profile
 - onboarding state
+=======
+* expenses
+* budgets
+* goals
+* connected mock accounts
+* notifications
+* settings
+* mock user profile
+* onboarding state
+>>>>>>> 65ff6e7fa40a9cdd1dcaeebbc03971b7210ef984
 
 This data is not secure banking storage. Do not store real credentials, real bank data, real card data, or sensitive personal data in this demo app.
 
@@ -359,6 +488,7 @@ The project uses Vitest and React Testing Library.
 
 Test coverage should focus on:
 
+<<<<<<< HEAD
 - domain rules
 - service logic
 - repository behavior
@@ -370,6 +500,19 @@ Test coverage should focus on:
 - settings behavior
 - privacy and local data actions
 - critical UI workflows
+=======
+* domain rules
+* service logic
+* repository behavior
+* demo data actions
+* receipt-to-expense flow
+* connected account connection/import flow
+* expense source metadata
+* dashboard empty and active states
+* settings behavior
+* privacy and local data actions
+* critical UI workflows
+>>>>>>> 65ff6e7fa40a9cdd1dcaeebbc03971b7210ef984
 
 Tests should prefer user-visible behavior over implementation details.
 
@@ -388,6 +531,7 @@ Use these before publishing major changes.
 
 This is a frontend-focused project. It does not yet include:
 
+<<<<<<< HEAD
 - production backend API
 - real authentication
 - real Open Banking integration
@@ -398,11 +542,24 @@ This is a frontend-focused project. It does not yet include:
 - complete accessibility audit
 - end-to-end browser automation
 - deployment pipeline
+=======
+* production backend API
+* real authentication
+* real Open Banking integration
+* real OCR integration
+* encrypted server-side storage
+* production session management
+* real notification delivery
+* complete accessibility audit
+* end-to-end browser automation
+* deployment pipeline
+>>>>>>> 65ff6e7fa40a9cdd1dcaeebbc03971b7210ef984
 
 ## Future Roadmap
 
 Possible next improvements:
 
+<<<<<<< HEAD
 - Add real backend API boundary.
 - Add production authentication.
 - Add an Open Banking adapter behind the current mock provider interface.
@@ -414,6 +571,19 @@ Possible next improvements:
 - Add account removal options for keeping or deleting imported expenses.
 - Add richer partial setup states on the dashboard.
 - Add deployment documentation.
+=======
+* Add real backend API boundary.
+* Add production authentication.
+* Add an Open Banking adapter behind the current mock provider interface.
+* Add a real OCR adapter behind the current mock receipt service.
+* Add encrypted server-side persistence.
+* Add end-to-end tests.
+* Improve modal focus trapping and keyboard accessibility.
+* Improve receipt history and linked expense management.
+* Add account removal options for keeping or deleting imported expenses.
+* Add richer partial setup states on the dashboard.
+* Add deployment documentation.
+>>>>>>> 65ff6e7fa40a9cdd1dcaeebbc03971b7210ef984
 
 ## Repository
 
