@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Base style resets and customizations */
+html, body, #root {
+  font-family: var(--font-sans);
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Animations for seamless route transitions */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+html.text-size-large {
+  font-size: 17px;
+}
+
+html.text-size-large body {
+  font-size: 1rem;
+}
+
+html.text-size-large [class~="text-[10px]"],
+html.text-size-large [class~="text-[11px]"] {
+  font-size: 0.75rem !important;
+}
+
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+}
+
+html.contrast-high body {
+  background: #020617;
+  color: #f8fafc;
+}
+
+html.contrast-high :where(button, input, select, textarea, a):focus-visible {
+  outline: 3px solid #facc15;
+  outline-offset: 2px;
+}
+
+html.contrast-high :where(.border-slate-50, .border-slate-100, .border-slate-200) {
+  border-color: #64748b !important;
+}
+
+html.contrast-high :where(.text-slate-300, .text-slate-400, .text-slate-500) {
+  color: #cbd5e1 !important;
+}
+
+html.layout-comfortable body {
+  line-height: 1.6;
+}
+
+html.layout-comfortable :where(button, input, select, textarea) {
+  min-height: 2.5rem;
+}
+
+/* Scrollbar styling */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
