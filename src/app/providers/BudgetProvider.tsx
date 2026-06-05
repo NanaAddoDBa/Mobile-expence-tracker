@@ -1,54 +1,60 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Budget } from "../../domain/budgets/budget.types";
 import {
   createSampleBudgets,
   mergeSampleRecords,
 } from "../../features/demo/services/sampleDataService";
-import { budgetRepository } from "../../services/repositories/budgetRepository.mock";
+import { budgetApi } from "../../services/api";
 
 export interface BudgetContextType {
   budgets: Budget[];
-  addBudget: (budget: Omit<Budget, "id">) => void;
-  reloadBudgets: () => Budget[];
-  loadSampleBudgets: () => Budget[];
-  editBudget: (id: string, budget: Partial<Budget>) => void;
-  deleteBudget: (id: string) => void;
+  addBudget: (budget: Omit<Budget, "id">) => Promise<void>;
+  reloadBudgets: () => Promise<Budget[]>;
+  loadSampleBudgets: () => Promise<Budget[]>;
+  editBudget: (id: string, budget: Partial<Budget>) => Promise<void>;
+  deleteBudget: (id: string) => Promise<void>;
 }
 
 const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
 
 export const BudgetProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [budgets, setBudgets] = useState<Budget[]>(() => budgetRepository.getAll());
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+
+  const reloadBudgets = useCallback(async () => {
+    const nextBudgets = await budgetApi.listBudgets();
+    setBudgets(nextBudgets);
+    return nextBudgets;
+  }, []);
+
+  useEffect(() => {
+    void reloadBudgets();
+  }, [reloadBudgets]);
 
   const value = useMemo<BudgetContextType>(() => {
     return {
       budgets,
-      addBudget(budgetData) {
-        const added = budgetRepository.add(budgetData);
+      async addBudget(budgetData) {
+        const added = await budgetApi.createBudget(budgetData);
         setBudgets((prev) => [...prev, added]);
       },
-      reloadBudgets() {
-        const nextBudgets = budgetRepository.getAll();
-        setBudgets(nextBudgets);
-        return nextBudgets;
-      },
-      loadSampleBudgets() {
+      reloadBudgets,
+      async loadSampleBudgets() {
         const sampleBudgets = createSampleBudgets();
         const nextBudgets = mergeSampleRecords(budgets, sampleBudgets);
-        budgetRepository.saveAll(nextBudgets);
-        setBudgets(nextBudgets);
+        await budgetApi.replaceBudgets(nextBudgets);
+        setBudgets(await budgetApi.listBudgets());
         return sampleBudgets;
       },
-      editBudget(id, updatedFields) {
-        const nextBudgets = budgetRepository.update(id, updatedFields);
+      async editBudget(id, updatedFields) {
+        const nextBudgets = await budgetApi.updateBudget(id, updatedFields);
         setBudgets(nextBudgets);
       },
-      deleteBudget(id) {
-        const nextBudgets = budgetRepository.delete(id);
+      async deleteBudget(id) {
+        const nextBudgets = await budgetApi.deleteBudget(id);
         setBudgets(nextBudgets);
       },
     };
-  }, [budgets]);
+  }, [budgets, reloadBudgets]);
 
   return <BudgetContext.Provider value={value}>{children}</BudgetContext.Provider>;
 };

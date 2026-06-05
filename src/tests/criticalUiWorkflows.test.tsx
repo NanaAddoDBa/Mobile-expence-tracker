@@ -124,7 +124,7 @@ describe("critical UI workflows", () => {
       </>
     );
 
-    expect(screen.getByText("Based on 1 expenses")).toBeInTheDocument();
+    expect(await screen.findByText("Based on 1 expenses")).toBeInTheDocument();
 
     await user.type(
       screen.getByPlaceholderText("Search merchant, notes or category..."),

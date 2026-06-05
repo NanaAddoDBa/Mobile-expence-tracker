@@ -1,9 +1,9 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { ConnectedAccount } from "../../domain/accounts/account.types";
 import { accountConnectionService } from "../../features/accounts/services/accountConnectionService";
 import { accountImportService } from "../../features/accounts/services/accountImportService";
 import { createNotification } from "../../features/notifications/services/notificationService";
-import { accountRepository } from "../../services/repositories/accountRepository.mock";
+import { accountApi } from "../../services/api";
 import { createAppError } from "../../lib/error/appError";
 import { logger } from "../../lib/logger";
 import { useExpenses } from "./ExpenseProvider";
@@ -11,41 +11,48 @@ import { useNotifications } from "./NotificationProvider";
 
 export interface AccountConnectionContextType {
   accounts: ConnectedAccount[];
-  reloadAccounts: () => ConnectedAccount[];
+  reloadAccounts: () => Promise<ConnectedAccount[]>;
   triggerMockImport: (accountId: string) => Promise<void>;
-  connectMockAccounts: (providerId: string, accountIds: string[]) => void;
+  connectMockAccounts: (providerId: string, accountIds: string[]) => Promise<void>;
   reconnectAccount: (accountId: string) => Promise<void>;
-  removeMockAccount: (accountId: string) => void;
+  removeMockAccount: (accountId: string) => Promise<void>;
 }
 
 const AccountConnectionContext = createContext<AccountConnectionContextType | undefined>(undefined);
 
 export const AccountConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [accounts, setAccounts] = useState<ConnectedAccount[]>(() => accountRepository.getAll());
+  const [accounts, setAccounts] = useState<ConnectedAccount[]>([]);
   const { expenses, addImportedExpenses } = useExpenses();
   const { addNotification } = useNotifications();
 
-  const updateAccounts = useCallback((nextAccounts: ConnectedAccount[]) => {
-    accountRepository.replaceAll(nextAccounts);
+  const reloadAccounts = useCallback(async () => {
+    const nextAccounts = await accountApi.listConnectedAccounts();
     setAccounts(nextAccounts);
+    return nextAccounts;
   }, []);
+
+  const updateAccounts = useCallback(async (nextAccounts: ConnectedAccount[]) => {
+    const savedAccounts = await accountApi.replaceConnectedAccounts(nextAccounts);
+    setAccounts(savedAccounts);
+    return savedAccounts;
+  }, []);
+
+  useEffect(() => {
+    void reloadAccounts();
+  }, [reloadAccounts]);
 
   const value = useMemo<AccountConnectionContextType>(() => {
     return {
       accounts,
-      reloadAccounts() {
-        const nextAccounts = accountRepository.getAll();
-        setAccounts(nextAccounts);
-        return nextAccounts;
-      },
-      connectMockAccounts(providerId, accountIds) {
+      reloadAccounts,
+      async connectMockAccounts(providerId, accountIds) {
         const connected = accountConnectionService.connectSelectedAccounts(providerId, accountIds);
         const merged = [
           ...accounts.filter((account) => !connected.some((next) => next.id === account.id)),
           ...connected,
         ];
 
-        updateAccounts(merged);
+        await updateAccounts(merged);
         addNotification(
           createNotification(
             "success",
@@ -60,7 +67,7 @@ export const AccountConnectionProvider: React.FC<{ children: React.ReactNode }> 
         const reconnecting = accounts.map((item) =>
           item.id === accountId ? { ...item, status: "needs_reconnect" as const } : item
         );
-        updateAccounts(reconnecting);
+        await updateAccounts(reconnecting);
 
         await accountConnectionService.simulateProviderAuthorization(account.providerId || "");
 
@@ -68,13 +75,13 @@ export const AccountConnectionProvider: React.FC<{ children: React.ReactNode }> 
         const nextAccounts = reconnecting.map((item) =>
           item.id === accountId ? reconnectedAccount : item
         );
-        updateAccounts(nextAccounts);
+        await updateAccounts(nextAccounts);
 
         addNotification(createNotification("success", `${account.name} reconnected.`));
       },
-      removeMockAccount(accountId) {
+      async removeMockAccount(accountId) {
         const nextAccounts = accountConnectionService.removeAccountConnection(accountId, accounts);
-        updateAccounts(nextAccounts);
+        await updateAccounts(nextAccounts);
         addNotification(
           createNotification("info", "Connected account removed. Existing expenses were kept.")
         );
@@ -87,10 +94,10 @@ export const AccountConnectionProvider: React.FC<{ children: React.ReactNode }> 
           const importingAccounts = accounts.map((item) =>
             item.id === accountId ? { ...item, status: "importing" as const } : item
           );
-          updateAccounts(importingAccounts);
+          await updateAccounts(importingAccounts);
 
           const result = await accountImportService.importExpensesForAccount(account, expenses);
-          addImportedExpenses(result.imported);
+          await addImportedExpenses(result.imported);
 
           const nextAccounts = importingAccounts.map((item) =>
             item.id === accountId
@@ -106,7 +113,7 @@ export const AccountConnectionProvider: React.FC<{ children: React.ReactNode }> 
                 }
               : item
           );
-          updateAccounts(nextAccounts);
+          await updateAccounts(nextAccounts);
 
           addNotification(
             createNotification(result.importedCount > 0 ? "success" : "info", result.message)
@@ -125,7 +132,7 @@ export const AccountConnectionProvider: React.FC<{ children: React.ReactNode }> 
                 }
               : item
           );
-          updateAccounts(failedAccounts);
+          await updateAccounts(failedAccounts);
           logger.error("Mock expense import failed.", {
             error: createAppError("IMPORT_ERROR", "Could not import mock expenses.", e),
             accountId,
@@ -133,7 +140,7 @@ export const AccountConnectionProvider: React.FC<{ children: React.ReactNode }> 
         }
       },
     };
-  }, [accounts, expenses, addImportedExpenses, addNotification, updateAccounts]);
+  }, [accounts, expenses, addImportedExpenses, addNotification, reloadAccounts, updateAccounts]);
 
   return (
     <AccountConnectionContext.Provider value={value}>

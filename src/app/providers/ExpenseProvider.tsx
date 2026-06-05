@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Expense } from "../../domain/expenses/expense.types";
 import { useBudgets } from "./BudgetProvider";
 import { useMockAuth } from "./MockAuthProvider";
@@ -11,25 +11,35 @@ import {
 import { createManualExpenseSource } from "../../features/expenses/services/expenseSourceService";
 import { notificationService } from "../../features/notifications/services/notificationService";
 import { getCurrentMonthKey } from "../../lib/dateUtils";
-import { expenseRepository } from "../../services/repositories/expenseRepository.mock";
+import { expenseApi } from "../../services/api";
 
 export interface ExpenseContextType {
   expenses: Expense[];
-  addExpense: (expense: Omit<Expense, "id">) => void;
-  addImportedExpenses: (expenses: Omit<Expense, "id">[]) => Expense[];
-  reloadExpenses: () => Expense[];
-  loadSampleExpenses: () => Expense[];
-  editExpense: (id: string, expense: Partial<Expense>) => void;
-  deleteExpense: (id: string) => void;
+  addExpense: (expense: Omit<Expense, "id">) => Promise<void>;
+  addImportedExpenses: (expenses: Omit<Expense, "id">[]) => Promise<Expense[]>;
+  reloadExpenses: () => Promise<Expense[]>;
+  loadSampleExpenses: () => Promise<Expense[]>;
+  editExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
+  deleteExpense: (id: string) => Promise<void>;
 }
 
 const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
 
 export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [expenses, setExpenses] = useState<Expense[]>(() => expenseRepository.getAll());
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const { budgets } = useBudgets();
   const { currentUser } = useMockAuth();
   const { addNotification } = useNotifications();
+
+  const reloadExpenses = useCallback(async () => {
+    const nextExpenses = await expenseApi.listExpenses();
+    setExpenses(nextExpenses);
+    return nextExpenses;
+  }, []);
+
+  useEffect(() => {
+    void reloadExpenses();
+  }, [reloadExpenses]);
 
   const checkBudgetThresholds = useCallback((updatedExpenses: Expense[], addedCategory: string) => {
     if (!currentUser?.notifications.enableAlerts) return;
@@ -56,36 +66,32 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const value = useMemo<ExpenseContextType>(() => {
     return {
       expenses,
-      addExpense(expenseData) {
+      async addExpense(expenseData) {
         const sourceAwareExpense = expenseData.entrySource
           ? expenseData
           : createManualExpenseSource(expenseData);
-        const added = expenseRepository.add(sourceAwareExpense);
-        const nextExpenses = [added, ...expenses];
+        const added = await expenseApi.createExpense(sourceAwareExpense);
+        const nextExpenses = await expenseApi.listExpenses();
         setExpenses(nextExpenses);
         checkBudgetThresholds(nextExpenses, added.category);
       },
-      addImportedExpenses(importedExpenseData) {
-        const added = importedExpenseData.map((expenseData) => expenseRepository.add(expenseData));
-        const nextExpenses = expenseRepository.getAll();
+      async addImportedExpenses(importedExpenseData) {
+        const added = await expenseApi.createImportedExpenses(importedExpenseData);
+        const nextExpenses = await expenseApi.listExpenses();
         setExpenses(nextExpenses);
         added.forEach((expense) => checkBudgetThresholds(nextExpenses, expense.category));
         return added;
       },
-      reloadExpenses() {
-        const nextExpenses = expenseRepository.getAll();
-        setExpenses(nextExpenses);
-        return nextExpenses;
-      },
-      loadSampleExpenses() {
+      reloadExpenses,
+      async loadSampleExpenses() {
         const sampleExpenses = createSampleExpenses();
         const nextExpenses = mergeSampleRecords(expenses, sampleExpenses);
-        expenseRepository.saveAll(nextExpenses);
-        setExpenses(nextExpenses);
+        await expenseApi.replaceExpenses(nextExpenses);
+        setExpenses(await expenseApi.listExpenses());
         return sampleExpenses;
       },
-      editExpense(id, updatedFields) {
-        const nextExpenses = expenseRepository.update(id, updatedFields);
+      async editExpense(id, updatedFields) {
+        const nextExpenses = await expenseApi.updateExpense(id, updatedFields);
         setExpenses(nextExpenses);
 
         const edited = nextExpenses.find((expense) => expense.id === id);
@@ -93,12 +99,12 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
           checkBudgetThresholds(nextExpenses, edited.category);
         }
       },
-      deleteExpense(id) {
-        const nextExpenses = expenseRepository.delete(id);
+      async deleteExpense(id) {
+        const nextExpenses = await expenseApi.deleteExpense(id);
         setExpenses(nextExpenses);
       },
     };
-  }, [expenses, checkBudgetThresholds]);
+  }, [expenses, checkBudgetThresholds, reloadExpenses]);
 
   return <ExpenseContext.Provider value={value}>{children}</ExpenseContext.Provider>;
 };

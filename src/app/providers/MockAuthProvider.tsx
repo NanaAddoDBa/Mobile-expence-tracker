@@ -1,9 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { UserProfile } from "../../domain/profile/profile.types";
 import { INITIAL_PROFILE } from "../../data/mockProfile";
-import { createAppError } from "../../lib/error/appError";
-import { logger } from "../../lib/logger";
-import { localStorageAdapter } from "../../services/storage/localStorageAdapter";
+import { authApi } from "../../services/api";
 
 export interface MockAuthContextType {
   isAuthenticated: boolean;
@@ -19,39 +17,26 @@ export interface MockAuthContextType {
 const MockAuthContext = createContext<MockAuthContextType | undefined>(undefined);
 
 export const MockAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const initialAuthState = authApi.getAuthState();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorageAdapter.getItem("exp_auth") === "true";
+    return initialAuthState.isAuthenticated;
   });
   const [isOnboarded, setIsOnboarded] = useState<boolean>(() => {
-    return localStorageAdapter.getItem("exp_onboarded") === "true";
+    return initialAuthState.isOnboarded;
   });
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
-    const saved = localStorageAdapter.getItem("exp_user_profile");
-    if (!saved) return null;
-
-    try {
-      return JSON.parse(saved);
-    } catch (e) {
-      logger.error("Failed to parse saved mock profile. Falling back to signed-out profile state.", {
-        error: createAppError("STORAGE_ERROR", "Could not parse saved mock profile.", e),
-        storageKey: "exp_user_profile",
-      });
-      localStorageAdapter.removeItem("exp_user_profile");
-      return null;
-    }
-  });
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => authApi.getUserProfile());
 
   useEffect(() => {
-    localStorageAdapter.setItem("exp_auth", String(isAuthenticated));
+    authApi.setAuthState({ isAuthenticated });
   }, [isAuthenticated]);
 
   useEffect(() => {
-    localStorageAdapter.setItem("exp_onboarded", String(isOnboarded));
+    authApi.setAuthState({ isOnboarded });
   }, [isOnboarded]);
 
   useEffect(() => {
     if (currentUser) {
-      localStorageAdapter.setItem("exp_user_profile", JSON.stringify(currentUser));
+      authApi.saveUserProfile(currentUser);
     }
   }, [currentUser]);
 

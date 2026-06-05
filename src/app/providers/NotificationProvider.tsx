@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { SystemNotification } from "../../domain/notifications/notification.types";
 import { createNotification, notificationService } from "../../features/notifications/services/notificationService";
-import { notificationRepository } from "../../services/repositories/notificationRepository.mock";
+import { notificationApi } from "../../services/api";
 
 export interface NotificationContextType {
   notifications: SystemNotification[];
   addNotification: (notification: SystemNotification) => void;
   showNotification: (type: SystemNotification["type"], message: string) => void;
-  reloadNotifications: () => SystemNotification[];
+  reloadNotifications: () => Promise<SystemNotification[]>;
   markNotificationAsRead: (id: string) => void;
   clearAllNotifications: () => void;
 }
@@ -15,13 +15,26 @@ export interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [notifications, setNotifications] = useState<SystemNotification[]>(() =>
-    notificationRepository.getAll()
-  );
+  const [notifications, setNotifications] = useState<SystemNotification[]>([]);
+  const [hasLoadedNotifications, setHasLoadedNotifications] = useState(false);
+
+  const reloadNotifications = useMemo(() => {
+    return async () => {
+      const nextNotifications = await notificationApi.listNotifications();
+      setNotifications(nextNotifications);
+      setHasLoadedNotifications(true);
+      return nextNotifications;
+    };
+  }, []);
 
   useEffect(() => {
-    notificationRepository.saveAll(notifications);
-  }, [notifications]);
+    void reloadNotifications();
+  }, [reloadNotifications]);
+
+  useEffect(() => {
+    if (!hasLoadedNotifications) return;
+    void notificationApi.replaceNotifications(notifications);
+  }, [hasLoadedNotifications, notifications]);
 
   const value = useMemo<NotificationContextType>(() => {
     const addNotification = (notification: SystemNotification) => {
@@ -34,11 +47,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       showNotification(type, message) {
         addNotification(createNotification(type, message));
       },
-      reloadNotifications() {
-        const nextNotifications = notificationRepository.getAll();
-        setNotifications(nextNotifications);
-        return nextNotifications;
-      },
+      reloadNotifications,
       markNotificationAsRead(id) {
         setNotifications((prev) =>
           prev.map((notification) =>
@@ -48,10 +57,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       },
       clearAllNotifications() {
         setNotifications([]);
-        notificationRepository.clear();
+        void notificationApi.clearNotifications();
       },
     };
-  }, [notifications]);
+  }, [notifications, reloadNotifications]);
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 };
