@@ -1,0 +1,6 @@
+{
+  "name": "Expense Tracker & Budget Manager",
+  "description": "A production-grade expense tracker and budget manager allowing clients to record spending, manage categories, schedule recurring items, track financial targets, and parse virtual receipts with OCR-simulation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
