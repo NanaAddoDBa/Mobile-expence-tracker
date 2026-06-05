@@ -420,7 +420,7 @@ Possible next improvements:
 Remote repository:
 
 ```text
-git@github-nanaaddodb:NanaAddoDBa/Mobile-expence-tracker.git
+https://github.com/NanaAddoDBa/Mobile-expence-tracker.git
 ```
 
 Note: the repository name currently uses `expence`. Keep it if intentional, or rename it later if you want the spelling to be `expense`.
