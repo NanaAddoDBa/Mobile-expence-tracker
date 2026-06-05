@@ -43,7 +43,7 @@ export const DashboardView: React.FC = () => {
         onNavigate={setActiveView}
         onOpenConnectedAccounts={() => openProfileTab("accounts")}
         onLoadSampleData={() => {
-          loadSampleData();
+          void loadSampleData();
           showSuccess("Starter sample data loaded.");
         }}
       />

@@ -4,7 +4,7 @@ import { useConnectedAccounts } from "../../../app/providers/AccountConnectionPr
 import { useExpenses } from "../../../app/providers/ExpenseProvider";
 import { useGoals } from "../../../app/providers/GoalProvider";
 import { useNotifications } from "../../../app/providers/NotificationProvider";
-import { demoDataService } from "../../../services/demo/demoDataService";
+import { demoApi } from "../../../services/api";
 
 export interface DemoDataLoadResult {
   expenses: number;
@@ -20,29 +20,31 @@ export function useDemoDataActions() {
   const { reloadAccounts } = useConnectedAccounts();
   const { reloadNotifications } = useNotifications();
 
-  const refreshProductData = useCallback(() => {
-    reloadExpenses();
-    reloadBudgets();
-    reloadGoals();
-    reloadAccounts();
-    reloadNotifications();
+  const refreshProductData = useCallback(async () => {
+    await Promise.all([
+      reloadExpenses(),
+      reloadBudgets(),
+      reloadGoals(),
+      reloadAccounts(),
+      reloadNotifications(),
+    ]);
   }, [reloadAccounts, reloadBudgets, reloadExpenses, reloadGoals, reloadNotifications]);
 
-  const loadSampleData = useCallback((): DemoDataLoadResult => {
-    const result = demoDataService.loadStarterDemoData();
-    refreshProductData();
+  const loadSampleData = useCallback(async (): Promise<DemoDataLoadResult> => {
+    const result = await demoApi.loadStarterDemoData();
+    await refreshProductData();
     return result;
   }, [refreshProductData]);
 
-  const resetSampleData = useCallback((): DemoDataLoadResult => {
-    const result = demoDataService.resetDemoData();
-    refreshProductData();
+  const resetSampleData = useCallback(async (): Promise<DemoDataLoadResult> => {
+    const result = await demoApi.resetDemoData();
+    await refreshProductData();
     return result;
   }, [refreshProductData]);
 
-  const clearSampleData = useCallback(() => {
-    demoDataService.clearDemoData();
-    refreshProductData();
+  const clearSampleData = useCallback(async () => {
+    await demoApi.clearDemoData();
+    await refreshProductData();
   }, [refreshProductData]);
 
   return { loadSampleData, resetSampleData, clearSampleData };

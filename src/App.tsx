@@ -44,7 +44,7 @@ function AppContent() {
     } as const;
 
     if (action === "load-sample-data") {
-      loadSampleData();
+      void loadSampleData();
       showSuccess("Starter sample data loaded.");
     }
 

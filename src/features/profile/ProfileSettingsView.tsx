@@ -119,8 +119,8 @@ export const ProfileSettingsView: React.FC = () => {
     window.setTimeout(() => window.location.reload(), 500);
   };
 
-  const loadLocalSampleData = () => {
-    loadSampleData();
+  const loadLocalSampleData = async () => {
+    await loadSampleData();
     showSuccess("Starter sample data loaded.");
   };
 
@@ -134,7 +134,7 @@ export const ProfileSettingsView: React.FC = () => {
 
     if (!confirmed) return;
 
-    resetSampleData();
+    await resetSampleData();
     showSuccess("Demo data reset.");
   };
 
@@ -148,7 +148,7 @@ export const ProfileSettingsView: React.FC = () => {
 
     if (!confirmed) return;
 
-    clearSampleData();
+    await clearSampleData();
     showSuccess("Local app data cleared.");
   };
 
@@ -235,7 +235,9 @@ export const ProfileSettingsView: React.FC = () => {
                 void clearLocalDemoData();
               }}
               onImportMockExpenses={settings.importMockExpenses}
-              onLoadSampleData={loadLocalSampleData}
+              onLoadSampleData={() => {
+                void loadLocalSampleData();
+              }}
               onResetDemoData={() => {
                 void resetLocalDemoData();
               }}
