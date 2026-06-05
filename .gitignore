@@ -2,6 +2,7 @@ node_modules/
 build/
 dist/
 coverage/
+*.tsbuildinfo
 *.log
 dev-server.*.log
 *.cmd

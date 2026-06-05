@@ -1,99 +1,147 @@
 # Privacy and Consent
 
-The real backend must be privacy-aware from the first milestone. Privacy, consent, user data ownership, retention, export, and deletion should not be added as final polish.
+This document defines engineering and product requirements for privacy-aware backend design. It is not legal advice.
 
-This document is product and engineering guidance, not legal advice.
+The app handles financial data even before Open Banking is added. Backend V1 should follow data protection by design and by default: collect only what is needed, scope all data by user, protect sensitive records, and provide export/delete behavior from the start.
 
-## Data Classification
+## Data Minimization
 
-Classify data before storing it:
+Backend V1 should store only data needed for:
 
-- Account data: connected account metadata, external account metadata, consent state.
-- Financial data: expenses, budgets, goals, transactions, receipts, receipt extractions.
-- Identity data: user profile, email, authentication identifier.
-- Preference data: settings, notification preferences, theme, accessibility settings.
-- Operational data: audit logs, sync runs, import batches, error categories.
-- Sensitive secrets: session secrets, provider tokens, encryption keys.
-
-Sensitive secrets must never be stored in browser local storage.
-
-## User Ownership
-
-User data belongs to the user. The backend must support:
-
-- Data export.
-- Data deletion.
-- Account deletion.
-- Consent withdrawal.
-- Clear account removal behavior.
-
-Every user-owned record must be scoped to the authenticated `userId`.
-
-## Consent Model
-
-Connected account consent should record:
-
-- Provider.
-- Consent status.
-- Consent grant timestamp.
-- Consent expiry timestamp when available.
-- Requested account information scope.
-- Last successful sync timestamp.
-- Last failed sync timestamp.
-- Reconnect requirement.
-- Removal preference.
-
-Users should understand that connected accounts are used for read-only transaction import.
-
-## Retention Rules
-
-Define retention before launch:
-
-- Deleted user data should be removed from primary application tables.
-- Audit logs may be retained only as required for security and operations.
-- Provider tokens must be deleted when account access is removed.
-- Receipt files should be deleted when the user deletes receipt data or account data.
-- Backups need a documented retention period.
-
-## Export Behavior
-
-The export endpoint should include:
-
-- Profile data.
+- Authentication.
+- User profile.
 - Settings.
 - Expenses.
 - Budgets.
 - Goals.
-- Receipts and receipt metadata.
-- Connected account metadata.
-- Import history.
-- Notifications.
-- Audit log summary where appropriate.
+- Data export.
+- Account data deletion.
+- Audit logs for sensitive actions.
 
-Do not include secrets, password hashes, provider tokens, or internal encryption metadata in exports.
+Backend V1 should not collect:
 
-## Delete Behavior
+- Real bank credentials.
+- Real card credentials.
+- Real wallet credentials.
+- Open Banking provider tokens.
+- Real OCR provider payloads.
+- Payment initiation data.
+- Investment, tax, legal, or banking advice data.
 
-The delete endpoint should:
+## User Ownership
 
-- Require authentication.
-- Delete user-owned application data.
-- Delete provider tokens and connected account records.
-- Delete receipt file references and queued receipt work.
-- Record a minimal audit event if required.
-- Return a clear completion result.
+Every user-owned record must include `userId`.
 
-## Vendor and Hosting Responsibilities
+Every API query must scope by the authenticated `userId`.
 
-Before production, maintain a vendor register for:
+The backend must not trust a `userId` supplied by the frontend for ownership decisions.
+
+## Export Data Behavior
+
+Backend V1 must include `GET /data-export`.
+
+The export should include supported user data:
+
+- User profile.
+- Settings.
+- Expenses.
+- Budgets.
+- Goals.
+- User-visible audit log summary where appropriate.
+
+The export must not include:
+
+- Password hashes.
+- Session secrets.
+- Internal auth metadata.
+- Provider tokens.
+- Encryption metadata.
+- Secrets or environment configuration.
+
+Export actions should write an audit log event.
+
+## Delete Data Behavior
+
+Backend V1 must include `DELETE /account-data`.
+
+Deletion should remove supported user-owned application data:
+
+- Settings.
+- Expenses.
+- Budgets.
+- Goals.
+- Future placeholder records when implemented.
+
+Deletion should invalidate sessions when appropriate and write an audit log event.
+
+Audit log retention after deletion must be documented before production.
+
+## Retention Assumptions
+
+Backend V1 assumptions:
+
+- Active user data is retained until the user deletes it.
+- Deleted user application data is removed from primary tables.
+- Backups may retain deleted data temporarily according to a documented backup retention period.
+- Audit logs may be retained only for security and operational needs.
+
+Production requires a clear retention policy before launch.
+
+## Audit Logging
+
+Backend V1 should audit:
+
+- Register.
+- Login.
+- Logout.
+- Data export.
+- Account data deletion.
+- Expense delete.
+- Budget delete.
+- Goal delete.
+
+Audit metadata must stay minimal and must not include raw secrets, passwords, provider tokens, or unnecessary financial detail.
+
+## Frontend Local Storage Restrictions
+
+The frontend must never store:
+
+- Real banking credentials.
+- Provider access tokens.
+- Provider refresh tokens.
+- Session secrets.
+- Real card or wallet credentials.
+- Sensitive financial data intended for production persistence.
+
+Mock local storage is acceptable only for local development/demo behavior before real backend persistence exists.
+
+## Future Open Banking Consent Lifecycle
+
+Future Open Banking must include:
+
+- Consent records.
+- Consent status.
+- Consent granted timestamp.
+- Consent expiry timestamp.
+- Reconnect state.
+- Provider metadata.
+- Encrypted provider tokens stored on the backend only.
+- Account removal behavior.
+- Imported data retention/deletion choice.
+
+The frontend should only show consent status and user actions. It must not receive or store provider tokens.
+
+## Provider Responsibilities
+
+Before production, document provider responsibilities for:
 
 - Hosting.
 - Database.
-- Object storage.
 - Authentication.
-- Open Banking provider.
-- OCR provider.
-- Email or push notification provider.
+- Object storage.
+- Open Banking.
+- OCR.
+- Email/push notifications.
 - Monitoring and logging.
 
-For each vendor, record the data processed, region, retention behavior, and security responsibilities.
+For each provider, record what data is processed, region, retention behavior, and security responsibilities.

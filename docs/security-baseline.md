@@ -1,6 +1,8 @@
 # Security Baseline
 
-The backend should start with a small, enforceable security baseline. Security should be part of the first real backend milestone, not an end-stage hardening pass.
+This is the baseline before production. It is not a full security certification.
+
+The backend should start with small, enforceable controls. Security should be part of the first real backend milestone, not an end-stage hardening pass.
 
 ## Authentication and Sessions
 
@@ -16,6 +18,8 @@ If cookie sessions are used:
 - Use same-site protection.
 - Add CSRF protection for state-changing requests.
 - Rotate session secrets safely.
+
+Do not store session secrets in frontend local storage.
 
 ## Authorization
 
@@ -42,6 +46,19 @@ Validate all state-changing requests server-side:
 
 Reject invalid dates, invalid currency codes, negative values where not allowed, oversized strings, and unsupported enum values.
 
+## Rate Limiting
+
+Add practical rate limits for:
+
+- Register.
+- Login.
+- Password reset if added.
+- Data export.
+- Account data deletion.
+- Future provider sync endpoints.
+
+Rate-limit responses should be calm and practical. Do not expose implementation internals.
+
 ## Secrets and Tokens
 
 Secrets must not be stored in source control or browser storage.
@@ -52,6 +69,19 @@ Provider tokens must be:
 - Encrypted at rest.
 - Excluded from logs.
 - Deleted when connection access is removed.
+
+Backend V1 should not store provider tokens yet.
+
+## Environment Variables
+
+Environment variables should be documented per environment:
+
+- Development.
+- Test.
+- Staging.
+- Production.
+
+Production secrets must come from a trusted secret manager or deployment provider secret store. Do not commit `.env` files.
 
 ## Logging
 
@@ -77,6 +107,9 @@ Record audit events for sensitive actions:
 - Logout.
 - Data export.
 - Account data deletion.
+- Expense delete.
+- Budget delete.
+- Goal delete.
 - Connected account created.
 - Connected account removed.
 - Provider consent changed.
@@ -87,6 +120,8 @@ Audit logs should include who performed the action, when it happened, what categ
 
 ## File Uploads
 
+Receipt upload is not part of Backend V1, but the future receipt backend needs a secure upload baseline.
+
 Receipt upload rules:
 
 - Limit file size.
@@ -96,6 +131,20 @@ Receipt upload rules:
 - Use private object storage by default.
 - Generate short-lived access URLs when needed.
 - Scan files for malware if practical before production.
+
+## Development vs Production Configuration
+
+Development may use local services and verbose diagnostics.
+
+Production should use:
+
+- HTTPS.
+- Secure cookies.
+- Production database credentials.
+- Restricted CORS.
+- Non-verbose user-facing errors.
+- Structured logs with sensitive data filtering.
+- Separate secrets from development and staging.
 
 ## Operational Controls
 
