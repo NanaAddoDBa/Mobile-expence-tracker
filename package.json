@@ -16,7 +16,12 @@
 		"dev:api": "npm --prefix server run start:dev",
 		"build:api": "npm --prefix server run build",
 		"test:api": "npm --prefix server run test",
-		"test:e2e:api": "npm --prefix server run test:e2e"
+		"test:e2e:api": "npm --prefix server run test:e2e",
+		"db:generate": "npm --prefix server run prisma:generate",
+		"db:format": "npm --prefix server run prisma:format",
+		"db:validate": "npm --prefix server run prisma:validate",
+		"db:migrate:dev": "npm --prefix server run prisma:migrate:dev",
+		"db:studio": "npm --prefix server run prisma:studio"
 	},
 	"dependencies": {
 		"d3": "^7.9.0",
