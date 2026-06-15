@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./common/errors/http-exception.filter";
 
@@ -10,6 +11,7 @@ async function bootstrap() {
   const port = Number(process.env.PORT || 4000);
 
   app.setGlobalPrefix("api");
+  app.use(cookieParser());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
