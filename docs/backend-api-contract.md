@@ -9,6 +9,9 @@ This document defines the initial Backend V1 HTTP API. All user-owned routes req
 - Every user-owned query must use authenticated `userId`.
 - Request validation happens server-side.
 - Responses must not include password hashes, session secrets, provider tokens, or internal encryption metadata.
+- Authentication uses an opaque random token in the HttpOnly `exp_tracker_session` cookie.
+- Only the SHA-256 session token hash is stored in PostgreSQL.
+- The raw session token is never returned in JSON or stored in frontend `localStorage`.
 - Money values use integer minor units, such as `amountMinor: 1250` for EUR 12.50.
 - Backend V1 supports EUR as the default currency.
 
@@ -24,14 +27,16 @@ Backend V1 should create manual expenses first, while keeping `entrySource`, `pa
 
 ## Error Shape
 
-Recommended error shape:
+Error shape:
 
 ```ts
 type ApiErrorResponse = {
   error: {
     code: string;
     message: string;
-    fieldErrors?: Record<string, string[]>;
+    details?: unknown;
+    requestId?: string;
+    timestamp: string;
   };
 };
 ```
@@ -58,7 +63,7 @@ Request:
 
 ```ts
 type RegisterRequest = {
-  name: string;
+  name?: string;
   email: string;
   password: string;
 };
@@ -68,19 +73,24 @@ Response:
 
 ```ts
 type RegisterResponse = {
-  user: UserResponse;
+  data: {
+    user: AuthUserResponse;
+  };
 };
 ```
 
 Validation notes:
 
-- Name is required.
+- Name is optional and limited to 100 characters.
 - Email must be valid and unique.
-- Password must meet the chosen auth policy.
+- Password must be 8-128 characters.
+- Email is normalized to lowercase.
 
 Ownership rule: creates a new user-owned scope.
 
-Likely errors: `409 CONFLICT`, `422 VALIDATION_ERROR`, `429 RATE_LIMITED`.
+Cookie behavior: returns `exp_tracker_session` as an HttpOnly, `SameSite=Lax` cookie. The response does not contain the raw session token.
+
+Likely errors: `409 CONFLICT`, `400 VALIDATION_ERROR`, `429 RATE_LIMITED`.
 
 ### POST /auth/login
 
@@ -101,24 +111,30 @@ Response:
 
 ```ts
 type LoginResponse = {
-  user: UserResponse;
+  data: {
+    user: AuthUserResponse;
+  };
 };
 ```
 
 Validation notes:
 
 - Email and password are required.
+- Email is normalized to lowercase.
 - Use a generic failure message for invalid credentials.
+- Disabled users receive `403 FORBIDDEN`.
 
 Ownership rule: session identifies one authenticated user.
 
-Likely errors: `401 UNAUTHORIZED`, `422 VALIDATION_ERROR`, `429 RATE_LIMITED`.
+Cookie behavior: creates a new server-side session and returns the opaque token only through the HttpOnly cookie.
+
+Likely errors: `401 UNAUTHORIZED`, `403 FORBIDDEN`, `400 VALIDATION_ERROR`, `429 RATE_LIMITED`.
 
 ### POST /auth/logout
 
 Purpose: end the current session.
 
-Auth: required.
+Auth: session cookie is read when present. Logout is idempotent and clears the cookie even if the session is already absent or invalid.
 
 Request: none.
 
@@ -126,7 +142,9 @@ Response:
 
 ```ts
 type LogoutResponse = {
-  success: true;
+  data: {
+    success: true;
+  };
 };
 ```
 
@@ -134,7 +152,7 @@ Validation notes: none.
 
 Ownership rule: only the current user's session is ended.
 
-Likely errors: `401 UNAUTHORIZED`.
+Likely errors: none for an absent session; unexpected infrastructure failures use the shared error convention.
 
 ### GET /auth/me
 
@@ -148,7 +166,9 @@ Response:
 
 ```ts
 type MeResponse = {
-  user: UserResponse;
+  data: {
+    user: AuthUserResponse;
+  };
 };
 ```
 
@@ -157,6 +177,30 @@ Validation notes: none.
 Ownership rule: returns only the current user.
 
 Likely errors: `401 UNAUTHORIZED`.
+
+### Auth user response
+
+```ts
+type AuthUserResponse = {
+  id: string;
+  email: string;
+  name: string | null;
+  status: "ACTIVE" | "DISABLED" | "PENDING_VERIFICATION";
+  createdAt: string;
+  updatedAt: string;
+};
+```
+
+The response never includes `passwordHash`, session token hashes, verification internals, or session secrets.
+
+### Session behavior
+
+- Session tokens are generated from 32 cryptographically random bytes.
+- Only a SHA-256 token hash is stored in the `Session` table.
+- Sessions expire after `SESSION_TTL_DAYS`, defaulting to seven days.
+- Logout records `revokedAt` for the matching session.
+- `AuthGuard` rejects missing, expired, revoked, or unknown sessions.
+- OAuth, social sign-in, refresh tokens, password reset, and email verification workflows are not part of this phase.
 
 ## Users/Profile
 
