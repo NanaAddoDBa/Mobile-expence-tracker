@@ -16,6 +16,7 @@ import {
 import { ActiveView, useAppNavigation } from "../../app/providers/AppNavigationProvider";
 import { useMockAuth } from "../../app/providers/MockAuthProvider";
 import { useNotifications } from "../../app/providers/NotificationProvider";
+import { USES_HTTP_API } from "../../services/api/apiMode";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -171,7 +172,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
               className="hidden lg:flex items-center gap-1.5 bg-slate-50 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-indigo-500/10 border border-slate-100 dark:border-slate-700 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-slate-500 hover:text-indigo-700 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors"
               title="Mock services are used. No real banking, payment, or OCR APIs are connected."
             >
-              <span className="text-emerald-500 font-bold">•</span> Mock data active
+              <span className="text-emerald-500 font-bold">•</span>{" "}
+              {USES_HTTP_API ? "Backend API active" : "Mock data active"}
             </button>
 
             {/* Notification bell dropdown button */}

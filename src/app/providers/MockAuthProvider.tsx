@@ -1,16 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { UserProfile } from "../../domain/profile/profile.types";
-import { INITIAL_PROFILE } from "../../data/mockProfile";
 import { authApi } from "../../services/api";
+import { USES_HTTP_API } from "../../services/api/apiMode";
 
 export interface MockAuthContextType {
   isAuthenticated: boolean;
   isOnboarded: boolean;
   currentUser: UserProfile | null;
   completeOnboarding: () => void;
-  login: (email: string, name?: string) => boolean;
-  signup: (email: string, name: string) => void;
-  logout: () => void;
+  login: (email: string, password: string, name?: string) => Promise<boolean>;
+  signup: (email: string, name: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
   updateProfile: (profile: Partial<UserProfile>) => void;
 }
 
@@ -40,58 +40,96 @@ export const MockAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [currentUser]);
 
+  useEffect(() => {
+    if (!USES_HTTP_API) {
+      return;
+    }
+
+    let isMounted = true;
+
+    void authApi
+      .getCurrentUser()
+      .then((user) => {
+        if (!isMounted) {
+          return;
+        }
+
+        if (user) {
+          setCurrentUser(user);
+          setIsAuthenticated(true);
+        } else {
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const completeOnboarding = () => {
     setIsOnboarded(true);
   };
 
-  const login = (email: string, name?: string): boolean => {
-    if (!email) return false;
-    const formattedEmail = email.trim();
-    const cleanName = name?.trim() || formattedEmail.split("@")[0];
+  const login = async (
+    email: string,
+    password: string,
+    name?: string
+  ): Promise<boolean> => {
+    if (!email || !password) return false;
 
-    setCurrentUser((prev) => {
-      const updated = {
-        ...(prev || INITIAL_PROFILE),
-        email: formattedEmail,
-        name: cleanName,
-      } as UserProfile;
-      return updated;
-    });
+    try {
+      const user = await authApi.login(email, password, name);
 
-    setIsAuthenticated(true);
-    return true;
+      if (!user) {
+        return false;
+      }
+
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+      return true;
+    } catch {
+      return false;
+    }
   };
 
-  const signup = (email: string, name: string) => {
-    const freshUser: UserProfile = {
-      id: `usr-${Math.random().toString(36).substring(2, 7)}`,
-      name: name.trim(),
-      email: email.trim(),
-      settings: {
-        theme: "light",
-        currency: "EUR",
-        language: "en-IE",
-        accessibility: {
-          largerText: false,
-          reduceMotion: false,
-          highContrast: false,
-          comfortableLayout: false,
-        },
-      },
-      notifications: {
-        enableAlerts: true,
-        budgetThreshold: 80,
-        recurringReminders: true,
-        weeklySummaries: false,
-      },
-    };
-    setCurrentUser(freshUser);
-    setIsAuthenticated(true);
-    setIsOnboarded(false);
+  const signup = async (
+    email: string,
+    name: string,
+    password: string
+  ): Promise<boolean> => {
+    if (!email || !name || !password) return false;
+
+    try {
+      const freshUser = await authApi.signup(email, name, password);
+      setCurrentUser(freshUser);
+      setIsAuthenticated(true);
+      setIsOnboarded(false);
+      return true;
+    } catch {
+      return false;
+    }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // Local sign-out should still continue if the network call fails.
+    }
+
     setIsAuthenticated(false);
+    if (USES_HTTP_API) {
+      setCurrentUser(null);
+      authApi.clearUserProfile();
+    }
   };
 
   const updateProfile = (profileData: Partial<UserProfile>) => {

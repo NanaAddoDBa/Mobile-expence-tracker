@@ -1,21 +1,29 @@
 import React, { useState } from "react";
-import { Mail, Lock, User, Wallet } from "lucide-react";
+import { Lock, Mail, User, Wallet } from "lucide-react";
 import { Card } from "../../components/ui/Card";
 
 interface AuthScreenProps {
-  onLogin: (email: string, name?: string) => boolean;
-  onSignup: (email: string, name: string) => void;
+  onLogin: (email: string, password: string, name?: string) => Promise<boolean>;
+  onSignup: (
+    email: string,
+    name: string,
+    password: string
+  ) => Promise<boolean>;
 }
 
-export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onSignup }) => {
+export const AuthScreen: React.FC<AuthScreenProps> = ({
+  onLogin,
+  onSignup,
+}) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("demo@example.com");
   const [name, setName] = useState("Demo User");
-  const [password, setPassword] = useState("••••••••");
+  const [password, setPassword] = useState("password123");
   const [errorMsg, setErrorMsg] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setErrorMsg("");
 
     if (!email) {
@@ -23,28 +31,41 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onSignup }) => 
       return;
     }
 
+    if (password.length < 8) {
+      setErrorMsg("Password must be at least 8 characters.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
     if (isLogin) {
-      const ok = onLogin(email, name);
+      const ok = await onLogin(email, password, name);
       if (!ok) {
         setErrorMsg("Sign in failed. Please check your details.");
       }
     } else {
       if (!name) {
         setErrorMsg("Please enter your name");
+        setIsSubmitting(false);
         return;
       }
-      onSignup(email, name);
+
+      const ok = await onSignup(email, name, password);
+      if (!ok) {
+        setErrorMsg("Could not create your account. Please try again.");
+      }
     }
+
+    setIsSubmitting(false);
   };
 
-  const handleGoogleMock = () => {
-    onLogin("demo@example.com", "Demo User");
+  const handleDemoLogin = () => {
+    void onLogin("demo@example.com", password, "Demo User");
   };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4 transition-colors duration-200">
       <div className="w-full max-w-md">
-        {/* Brand Banner */}
         <div className="flex items-center justify-center gap-2.5 mb-8">
           <div className="p-2.5 bg-indigo-600 rounded-xl text-white shadow-xs">
             <Wallet className="w-6 h-6" />
@@ -60,7 +81,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onSignup }) => 
               {isLogin ? "Welcome back" : "Create profile"}
             </h2>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-              {isLogin ? "Sign in to manage expenses and budgets" : "Create a local profile"}
+              {isLogin
+                ? "Sign in to manage expenses and budgets"
+                : "Create your expense tracker profile"}
             </p>
           </div>
 
@@ -84,7 +107,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onSignup }) => 
                     type="text"
                     required
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(event) => setName(event.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium"
                     placeholder="E.g., Demo User"
                   />
@@ -104,7 +127,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onSignup }) => 
                   type="email"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(event) => setEmail(event.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium"
                   placeholder="E.g., name@domain.com"
                 />
@@ -125,7 +148,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onSignup }) => 
                   type="password"
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(event) => setPassword(event.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium"
                   placeholder="Password"
                 />
@@ -134,13 +157,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onSignup }) => 
 
             <button
               type="submit"
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-4 rounded-xl shadow-xs transition-colors text-sm"
+              disabled={isSubmitting}
+              className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-semibold py-2.5 px-4 rounded-xl shadow-xs transition-colors text-sm"
             >
-              {isLogin ? "Sign In" : "Create Profile"}
+              {isSubmitting ? "Working..." : isLogin ? "Sign In" : "Create Profile"}
             </button>
           </form>
 
-          {/* Social Divider */}
           <div className="relative flex py-5 items-center">
             <div className="flex-grow border-t border-slate-100 dark:border-slate-800" />
             <span className="flex-shrink mx-3 text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
@@ -150,10 +173,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, onSignup }) => 
           </div>
 
           <button
-            onClick={handleGoogleMock}
+            onClick={handleDemoLogin}
             className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-sm transition-all"
           >
-            {/* Minimalist Google Icon SVG */}
             <svg className="w-4.5 h-4.5" viewBox="0 0 24 24">
               <path
                 fill="#EA4335"
