@@ -28,6 +28,14 @@ export enum ExpenseCategory {
   OTHER = "other",
 }
 
+export enum RecurringFrequency {
+  DAILY = "daily",
+  WEEKLY = "weekly",
+  BI_WEEKLY = "bi-weekly",
+  MONTHLY = "monthly",
+  YEARLY = "yearly",
+}
+
 export enum CurrencyCode {
   EUR = "EUR",
   GBP = "GBP",
