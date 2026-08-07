@@ -346,29 +346,45 @@ Response:
 type ExpenseResponse = {
   id: string;
   merchant: string;
-  description: string;
+  description: string | null;
   amountMinor: number;
   currency: "EUR";
   date: string;
   category: string;
   paymentMethod: PaymentMethod;
   entrySource: EntrySource;
-  notes?: string;
-  receiptId?: string;
-  sourceAccountId?: string;
-  importBatchId?: string;
-  externalTransactionId?: string;
-  recurringTemplateId?: string;
+  notes: string | null;
+  isRecurring: boolean;
+  recurringFrequency: "daily" | "weekly" | "bi-weekly" | "monthly" | "yearly" | null;
+  receiptId: string | null;
+  sourceAccountId: string | null;
+  importBatchId: string | null;
+  externalTransactionId: string | null;
+  recurringTemplateId: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
 type ListExpensesResponse = {
-  expenses: ExpenseResponse[];
+  data: {
+    expenses: ExpenseResponse[];
+  };
+  meta: {
+    pagination: {
+      page: number;
+      pageSize: number;
+      total: number;
+      totalPages: number;
+    };
+  };
 };
 ```
 
-Validation notes: validate query params when added.
+Validation notes:
+
+- `page` defaults to `1`.
+- `pageSize` defaults to `20` and is capped at `100`.
+- Optional `category`, `from`, and `to` filters are validated when provided.
 
 Ownership rule: list only rows where `expense.userId` matches authenticated user.
 
@@ -393,11 +409,8 @@ type CreateExpenseRequest = {
   paymentMethod: PaymentMethod;
   entrySource?: EntrySource;
   notes?: string;
-  receiptId?: string;
-  sourceAccountId?: string;
-  importBatchId?: string;
-  externalTransactionId?: string;
-  recurringTemplateId?: string;
+  isRecurring?: boolean;
+  recurringFrequency?: "daily" | "weekly" | "bi-weekly" | "monthly" | "yearly";
 };
 ```
 
@@ -405,7 +418,9 @@ Response:
 
 ```ts
 type CreateExpenseResponse = {
-  expense: ExpenseResponse;
+  data: {
+    expense: ExpenseResponse;
+  };
 };
 ```
 
@@ -416,7 +431,8 @@ Validation notes:
 - Currency must be `EUR` in V1.
 - Date must be valid.
 - `entrySource` defaults to `manual` if omitted.
-- `receiptId`, `sourceAccountId`, `importBatchId`, and `externalTransactionId` are reserved for later receipt/import flows.
+- `receiptId`, `sourceAccountId`, `importBatchId`, and `externalTransactionId` are reserved for later receipt/import flows and are not accepted by the manual expense endpoint.
+- `recurringFrequency` is persisted only when `isRecurring` is true.
 
 Ownership rule: server assigns authenticated `userId`.
 
@@ -434,7 +450,9 @@ Response:
 
 ```ts
 type GetExpenseResponse = {
-  expense: ExpenseResponse;
+  data: {
+    expense: ExpenseResponse;
+  };
 };
 ```
 
@@ -460,11 +478,13 @@ Response:
 
 ```ts
 type UpdateExpenseResponse = {
-  expense: ExpenseResponse;
+  data: {
+    expense: ExpenseResponse;
+  };
 };
 ```
 
-Validation notes: validate only provided fields.
+Validation notes: validate only provided fields. Setting `isRecurring` to false clears `recurringFrequency`.
 
 Ownership rule: update only if expense belongs to authenticated user.
 
@@ -482,7 +502,9 @@ Response:
 
 ```ts
 type DeleteExpenseResponse = {
-  success: true;
+  data: {
+    success: true;
+  };
 };
 ```
 
