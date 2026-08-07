@@ -21,7 +21,12 @@ const AuthProbe = () => {
       <output aria-label="profile-state">
         {currentUser ? currentUser.email : "no-profile"}
       </output>
-      <button type="button" onClick={() => login("demo@example.com", "Demo User")}>
+      <button
+        type="button"
+        onClick={() => {
+          void login("demo@example.com", "password123", "Demo User");
+        }}
+      >
         Login
       </button>
     </div>
@@ -52,10 +57,9 @@ describe("MockAuthProvider", () => {
 
     await user.click(screen.getByRole("button", { name: "Login" }));
 
-    expect(screen.getByLabelText("auth-state")).toHaveTextContent("authenticated");
-    expect(screen.getByLabelText("profile-state")).toHaveTextContent("demo@example.com");
-
     await waitFor(() => {
+      expect(screen.getByLabelText("auth-state")).toHaveTextContent("authenticated");
+      expect(screen.getByLabelText("profile-state")).toHaveTextContent("demo@example.com");
       expect(JSON.parse(localStorage.getItem("exp_user_profile") || "{}")).toMatchObject({
         email: "demo@example.com",
         name: "Demo User",

@@ -1,7 +1,64 @@
+import {
+  CreateExpenseModel,
+  Expense,
+  ExpenseEntrySource,
+  PaymentMethod,
+  RecurringFrequency,
+  UpdateExpenseModel,
+} from "../../domain/expenses/expense.types";
+import { normalizePaymentMethod } from "../../domain/expenses/expense.constants";
 import { ExpenseApi } from "./api.types";
+import { USES_HTTP_API } from "./apiMode";
+import { requestJson } from "./httpClient";
 import { expenseRepository } from "../repositories/expenseRepository.mock";
 
-export const expenseApi: ExpenseApi = {
+type ApiExpenseCategory =
+  | "housing"
+  | "groceries"
+  | "transport"
+  | "utilities"
+  | "dining"
+  | "entertainment"
+  | "health"
+  | "shopping"
+  | "education"
+  | "subscriptions"
+  | "transfers"
+  | "other";
+
+interface ExpenseResponse {
+  id: string;
+  merchant: string;
+  description: string | null;
+  amountMinor: number;
+  currency: "EUR";
+  date: string;
+  category: ApiExpenseCategory;
+  paymentMethod: PaymentMethod;
+  entrySource: ExpenseEntrySource;
+  notes: string | null;
+  isRecurring: boolean;
+  recurringFrequency: RecurringFrequency | null;
+  receiptId: string | null;
+  sourceAccountId: string | null;
+  importBatchId: string | null;
+  externalTransactionId: string | null;
+  recurringTemplateId: string | null;
+}
+
+interface ListExpensesResponse {
+  data: {
+    expenses: ExpenseResponse[];
+  };
+}
+
+interface ExpensePayloadResponse {
+  data: {
+    expense: ExpenseResponse;
+  };
+}
+
+const mockExpenseApi: ExpenseApi = {
   async listExpenses() {
     return expenseRepository.getAll();
   },
@@ -27,3 +84,164 @@ export const expenseApi: ExpenseApi = {
     return expenseRepository.getAll();
   },
 };
+
+const httpExpenseApi: ExpenseApi = {
+  async listExpenses() {
+    const response = await requestJson<ListExpensesResponse>("/expenses");
+    return response.data.expenses.map(fromApiExpense);
+  },
+
+  async createExpense(expense) {
+    const response = await requestJson<ExpensePayloadResponse>("/expenses", {
+      method: "POST",
+      body: JSON.stringify(toApiExpensePayload(expense)),
+    });
+
+    return fromApiExpense(response.data.expense);
+  },
+
+  async createImportedExpenses(expenses) {
+    const created: Expense[] = [];
+
+    for (const expense of expenses) {
+      created.push(await this.createExpense(expense));
+    }
+
+    return created;
+  },
+
+  async updateExpense(id, updates) {
+    await requestJson<ExpensePayloadResponse>(`/expenses/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(toApiExpensePayload(updates)),
+    });
+
+    return this.listExpenses();
+  },
+
+  async deleteExpense(id) {
+    await requestJson<{ data: { success: true } }>(`/expenses/${id}`, {
+      method: "DELETE",
+    });
+
+    return this.listExpenses();
+  },
+
+  async replaceExpenses(expenses) {
+    for (const expense of expenses) {
+      await this.createExpense(expense);
+    }
+
+    return this.listExpenses();
+  },
+};
+
+export const expenseApi: ExpenseApi = USES_HTTP_API
+  ? httpExpenseApi
+  : mockExpenseApi;
+
+function fromApiExpense(expense: ExpenseResponse): Expense {
+  return {
+    id: expense.id,
+    merchant: expense.merchant,
+    description: expense.description || "",
+    amount: expense.amountMinor / 100,
+    date: expense.date,
+    category: toFrontendCategory(expense.category),
+    accountSource: expense.sourceAccountId || expense.entrySource || "manual",
+    paymentMethod: normalizePaymentMethod(expense.paymentMethod),
+    isRecurring: expense.isRecurring,
+    recurringFrequency: expense.recurringFrequency || undefined,
+    notes: expense.notes || undefined,
+    receiptId: expense.receiptId || undefined,
+    entrySource: expense.entrySource,
+    sourceAccountId: expense.sourceAccountId || undefined,
+    importBatchId: expense.importBatchId || undefined,
+    externalTransactionId: expense.externalTransactionId || undefined,
+    recurringTemplateId: expense.recurringTemplateId || undefined,
+  };
+}
+
+function toApiExpensePayload(
+  expense: Partial<CreateExpenseModel | UpdateExpenseModel>
+) {
+  return {
+    ...(expense.merchant === undefined ? {} : { merchant: expense.merchant }),
+    ...(expense.description === undefined
+      ? {}
+      : { description: expense.description }),
+    ...(expense.amount === undefined
+      ? {}
+      : { amountMinor: Math.round(expense.amount * 100) }),
+    currency: "EUR",
+    ...(expense.date === undefined ? {} : { date: expense.date }),
+    ...(expense.category === undefined
+      ? {}
+      : { category: toApiCategory(expense.category) }),
+    ...(expense.paymentMethod === undefined
+      ? {}
+      : { paymentMethod: normalizePaymentMethod(expense.paymentMethod) }),
+    ...(expense.entrySource === undefined
+      ? {}
+      : { entrySource: expense.entrySource }),
+    ...(expense.notes === undefined ? {} : { notes: expense.notes }),
+    ...(expense.isRecurring === undefined
+      ? {}
+      : { isRecurring: expense.isRecurring }),
+    ...(expense.recurringFrequency === undefined
+      ? {}
+      : { recurringFrequency: expense.recurringFrequency }),
+  };
+}
+
+function toApiCategory(category: string): ApiExpenseCategory {
+  const normalized = category.trim().toLowerCase();
+  const compact = normalized.replace(/&/g, "and").replace(/\s+/g, " ");
+  const mappings: Record<string, ApiExpenseCategory> = {
+    "food and grocery": "groceries",
+    groceries: "groceries",
+    grocery: "groceries",
+    "dining and cafe": "dining",
+    dining: "dining",
+    cafe: "dining",
+    "transport and auto": "transport",
+    transport: "transport",
+    auto: "transport",
+    "housing and utilities": "housing",
+    housing: "housing",
+    utilities: "utilities",
+    "entertainment and leisure": "entertainment",
+    entertainment: "entertainment",
+    shopping: "shopping",
+    healthcare: "health",
+    health: "health",
+    "education and kids": "education",
+    education: "education",
+    subscriptions: "subscriptions",
+    transfers: "transfers",
+    "travel and holiday": "other",
+    others: "other",
+    other: "other",
+  };
+
+  return mappings[compact] || "other";
+}
+
+function toFrontendCategory(category: ApiExpenseCategory): string {
+  const mappings: Record<ApiExpenseCategory, string> = {
+    housing: "Housing & Utilities",
+    groceries: "Food & Grocery",
+    transport: "Transport & Auto",
+    utilities: "Housing & Utilities",
+    dining: "Dining & Cafe",
+    entertainment: "Entertainment & Leisure",
+    health: "Healthcare",
+    shopping: "Shopping",
+    education: "Education & Kids",
+    subscriptions: "Others",
+    transfers: "Others",
+    other: "Others",
+  };
+
+  return mappings[category];
+}

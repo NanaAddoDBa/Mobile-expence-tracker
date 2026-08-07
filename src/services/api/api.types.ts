@@ -62,6 +62,10 @@ export interface AuthApi {
   getUserProfile(): UserProfile | null;
   saveUserProfile(profile: UserProfile): void;
   clearUserProfile(): void;
+  getCurrentUser(): Promise<UserProfile | null>;
+  login(email: string, password: string, name?: string): Promise<UserProfile | null>;
+  signup(email: string, name: string, password: string): Promise<UserProfile>;
+  logout(): Promise<void>;
 }
 
 export interface DemoApi {
