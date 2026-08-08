@@ -6,15 +6,20 @@ import { SavingsTrajectoryChart } from "./SavingsTrajectoryChart";
 import { GoalCard } from "../../components/goals/GoalCard";
 import { GoalFormModal } from "../../components/goals/GoalFormModal";
 import { DepositFormModal } from "../../components/goals/DepositFormModal";
+import { ErrorState } from "../../components/feedback/ErrorState";
+import { LoadingState } from "../../components/feedback/LoadingState";
 import { getTodayDateString } from "../../lib/dateUtils";
 import { GoalFormSubmitPayload, GoalSavingsSubmitPayload } from "./types/goalForm.types";
 
 export const SavingsGoalsView: React.FC = () => {
   const {
     goals,
+    isLoading,
+    errorMessage,
     addGoal,
     editGoal,
     deleteGoal,
+    reloadGoals,
   } = useGoals();
 
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -106,6 +111,19 @@ export const SavingsGoalsView: React.FC = () => {
         </button>
       </div>
 
+      {isLoading && <LoadingState label="Loading goals..." />}
+
+      {errorMessage && !isLoading && (
+        <ErrorState
+          message={errorMessage}
+          onRetry={() => {
+            void reloadGoals();
+          }}
+        />
+      )}
+
+      {!isLoading && !errorMessage && (
+      <>
       {/* Trajectory Simulation Curve */}
       <SavingsTrajectoryChart goals={goals} />
 
@@ -159,6 +177,8 @@ export const SavingsGoalsView: React.FC = () => {
           </Card>
         </div>
       </div>
+      </>
+      )}
 
       {/* DIALOG: DEFINING SAVINGS ENVELOPE */}
       <GoalFormModal

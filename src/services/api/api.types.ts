@@ -1,4 +1,8 @@
-import { ConnectedAccount } from "../../domain/accounts/account.types";
+import {
+  BankInstitution,
+  ConnectedAccount,
+  StartBankConnectionInput,
+} from "../../domain/accounts/account.types";
 import { Budget, CreateBudgetModel, UpdateBudgetModel } from "../../domain/budgets/budget.types";
 import {
   CreateExpenseModel,
@@ -43,6 +47,18 @@ export interface GoalApi {
 
 export interface AccountApi {
   listConnectedAccounts(): Promise<ConnectedAccount[]>;
+  listBankInstitutions(country?: string): Promise<BankInstitution[]>;
+  startBankConnection(
+    input?: StartBankConnectionInput
+  ): Promise<{ linkUrl: string; account: ConnectedAccount }>;
+  importConnectedAccount(accountId: string): Promise<{
+    importBatchId: string;
+    importedCount: number;
+    skippedDuplicateCount: number;
+    failedCount: number;
+    message: string;
+  }>;
+  deleteConnectedAccount(accountId: string): Promise<void>;
   replaceConnectedAccounts(accounts: ConnectedAccount[]): Promise<ConnectedAccount[]>;
 }
 

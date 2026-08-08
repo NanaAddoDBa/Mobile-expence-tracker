@@ -4,6 +4,8 @@ export interface Budget {
   id: string;
   category: BudgetCategory;
   limitAmount: number;
+  currency?: "EUR";
+  monthKey?: string;
 }
 
 export type CreateBudgetModel = Omit<Budget, "id">;

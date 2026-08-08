@@ -51,6 +51,7 @@ const categoryToPrisma: Record<ExpenseCategory, PrismaExpenseCategory> = {
   [ExpenseCategory.EDUCATION]: PrismaExpenseCategory.EDUCATION,
   [ExpenseCategory.SUBSCRIPTIONS]: PrismaExpenseCategory.SUBSCRIPTIONS,
   [ExpenseCategory.TRANSFERS]: PrismaExpenseCategory.TRANSFERS,
+  [ExpenseCategory.TRAVEL]: PrismaExpenseCategory.TRAVEL,
   [ExpenseCategory.OTHER]: PrismaExpenseCategory.OTHER,
 };
 
@@ -66,6 +67,7 @@ const categoryFromPrisma: Record<PrismaExpenseCategory, ExpenseCategory> = {
   [PrismaExpenseCategory.EDUCATION]: ExpenseCategory.EDUCATION,
   [PrismaExpenseCategory.SUBSCRIPTIONS]: ExpenseCategory.SUBSCRIPTIONS,
   [PrismaExpenseCategory.TRANSFERS]: ExpenseCategory.TRANSFERS,
+  [PrismaExpenseCategory.TRAVEL]: ExpenseCategory.TRAVEL,
   [PrismaExpenseCategory.OTHER]: ExpenseCategory.OTHER,
 };
 

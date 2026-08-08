@@ -1,8 +1,8 @@
 # Expense Tracker API
 
-This folder contains the NestJS Backend V1 scaffold, its PostgreSQL-ready Prisma data model, cookie-session authentication, and authenticated manual expense tracking.
+This folder contains the NestJS Backend V1 scaffold, its PostgreSQL-ready Prisma data model, cookie-session authentication, authenticated manual expense, budget, and goal tracking, and read-only GoCardless Bank Account Data transaction import.
 
-The current backend exposes app, health, authentication, and expense endpoints. Budget, goal, settings, and other business CRUD APIs are not implemented yet.
+The current backend exposes app, health, authentication, expense, budget, goal, and connected-account import endpoints. Settings and other business CRUD APIs are not implemented yet.
 
 ## Setup
 
@@ -25,6 +25,18 @@ postgresql://postgres:postgres@localhost:5432/expense_tracker?schema=public
 ```
 
 Do not commit `server/.env`.
+
+For real transaction import, also configure GoCardless Bank Account Data credentials in `server/.env`:
+
+```text
+PUBLIC_API_URL=http://localhost:4000
+GOCARDLESS_SECRET_ID=your-secret-id
+GOCARDLESS_SECRET_KEY=your-secret-key
+GOCARDLESS_DEFAULT_COUNTRY=DE
+GOCARDLESS_DEFAULT_INSTITUTION_ID=SANDBOXFINANCE_SFIN0000
+```
+
+`PUBLIC_API_URL` must be reachable by the browser after the bank consent flow so GoCardless can redirect back to `/api/connected-accounts/link/callback`.
 
 Backend and Prisma scripts load `server/.env` when it exists. Schema-only Prisma commands fall back to the non-secret development URL in `.env.example`, so formatting, validation, and client generation do not require a running database.
 
@@ -78,11 +90,11 @@ Notification preferences remain in `UserSettings` for V1 instead of being duplic
 
 Money is stored as integer minor units with an explicit `CurrencyCode`. For example, EUR 12.50 is stored as `amountMinor = 1250` and `currency = EUR`.
 
-The future-ready receipt, connected-account, consent, import, and sync models are data placeholders only. There are no real OCR, Open Banking, payment, or provider integrations.
+Receipt models remain placeholders only. Connected-account, consent, import, and sync models support the read-only GoCardless transaction import foundation. There is no real OCR, payment initiation, or money movement.
 
 ## Runtime Behavior
 
-`PrismaService` only connects during Nest startup when `DATABASE_URL` is present in the process environment. Without it, the API and `/api/health` endpoint continue to run without a live database. Authentication and expense endpoints require a configured PostgreSQL database with the Backend V1 schema applied.
+`PrismaService` only connects during Nest startup when `DATABASE_URL` is present in the process environment. Without it, the API and `/api/health` endpoint continue to run without a live database. Authentication, expense, budget, goal, and transaction import endpoints require a configured PostgreSQL database with the Backend V1 schema applied.
 
 ## Authentication
 
@@ -115,6 +127,45 @@ All expense routes use the session `AuthGuard`; clients never provide `userId`. 
 
 Expense money is stored as integer minor units in `amountMinor`. V1 accepts only `EUR`. API category, payment method, entry source, and recurring frequency values use lowercase wire values and are mapped to Prisma enums internally.
 
+## Budgets
+
+Backend V1 provides authenticated budget tracking:
+
+- `GET /api/budgets`
+- `POST /api/budgets`
+- `GET /api/budgets/:id`
+- `PATCH /api/budgets/:id`
+- `DELETE /api/budgets/:id`
+
+Budgets are scoped to the authenticated user. Budget amounts are stored as integer minor units in `limitAmountMinor`, V1 accepts only `EUR`, and `monthKey` uses `YYYY-MM`. A user can have only one budget for the same category and month.
+
+## Goals
+
+Backend V1 provides authenticated savings goal tracking:
+
+- `GET /api/goals`
+- `POST /api/goals`
+- `GET /api/goals/:id`
+- `PATCH /api/goals/:id`
+- `DELETE /api/goals/:id`
+
+Goals are scoped to the authenticated user. Goal amounts are stored as integer minor units, V1 accepts only `EUR`, and the backend prevents current savings from exceeding the target amount. Goal status is automatically set to `completed` when current savings reaches the target.
+
+## Connected Accounts and Transaction Import
+
+Backend V1 provides read-only transaction import through GoCardless Bank Account Data:
+
+- `GET /api/connected-accounts`
+- `GET /api/connected-accounts/institutions?country=DE`
+- `POST /api/connected-accounts/link/start`
+- `GET /api/connected-accounts/link/callback`
+- `POST /api/connected-accounts/:id/import`
+- `DELETE /api/connected-accounts/:id`
+
+The frontend starts the connection and then redirects the user to the provider consent link. The backend handles provider token exchange, requisition creation, callback completion, external account storage, transaction fetching, deduplication, import batches, and expense creation.
+
+Imported bank transactions are read-only. The app never collects bank passwords and cannot initiate payments. Provider transaction data is normalized into `ExternalTransaction` rows and positive app `Expense` rows with `entrySource = CONNECTED_ACCOUNT`.
+
 ## Backend Conventions
 
 The API bootstrap uses a global `ValidationPipe` that transforms explicitly decorated values, rejects unknown DTO fields, and strips no fields silently. Shared DTOs provide pagination, date-range, ID, money, and stable enum validation.
@@ -142,7 +193,7 @@ Future endpoints should use these response shapes:
 
 Pagination defaults to page `1` with `20` items per page and allows at most `100` items per page. The shared HTTP exception filter handles expected Nest `HttpException` values without exposing stack traces. Unexpected errors remain with Nest's default error handling for now.
 
-`RequestUser` defines the authenticated request shape. `AuthGuard` protects `/api/auth/me` and all expense routes.
+`RequestUser` defines the authenticated request shape. `AuthGuard` protects `/api/auth/me`, expenses, budgets, goals, and connected-account import routes.
 
 Start the backend:
 

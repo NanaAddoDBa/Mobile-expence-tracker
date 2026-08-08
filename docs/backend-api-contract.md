@@ -431,6 +431,7 @@ Validation notes:
 - Currency must be `EUR` in V1.
 - Date must be valid.
 - `entrySource` defaults to `manual` if omitted.
+- Expense and budget categories include `housing`, `groceries`, `transport`, `utilities`, `dining`, `entertainment`, `health`, `shopping`, `education`, `subscriptions`, `transfers`, `travel`, and `other`.
 - `receiptId`, `sourceAccountId`, `importBatchId`, and `externalTransactionId` are reserved for later receipt/import flows and are not accepted by the manual expense endpoint.
 - `recurringFrequency` is persisted only when `isRecurring` is true.
 
@@ -561,7 +562,7 @@ type CreateBudgetRequest = {
   category: string;
   limitAmountMinor: number;
   currency: "EUR";
-  monthKey: string;
+  monthKey?: string;
 };
 ```
 
@@ -578,7 +579,7 @@ Validation notes:
 - Category is required.
 - Limit must be positive.
 - Currency must be `EUR`.
-- Month key must be `YYYY-MM`.
+- Month key must be `YYYY-MM` when provided. If omitted, the server defaults to the current month.
 - A user should not have duplicate budgets for the same category and month.
 
 Ownership rule: server assigns authenticated `userId`.
@@ -675,6 +676,7 @@ type GoalResponse = {
   currentAmountMinor: number;
   currency: "EUR";
   targetDate: string;
+  status: "active" | "completed" | "paused" | "archived";
   createdAt: string;
   updatedAt: string;
 };
@@ -705,6 +707,7 @@ type CreateGoalRequest = {
   currentAmountMinor?: number;
   currency: "EUR";
   targetDate: string;
+  status?: "active" | "completed" | "paused" | "archived";
 };
 ```
 
@@ -723,6 +726,7 @@ Validation notes:
 - Current amount defaults to 0 and cannot exceed target amount unless product rules change.
 - Currency must be `EUR`.
 - Target date must be valid.
+- Status defaults to `active` or `completed` from progress when omitted.
 
 Ownership rule: server assigns authenticated `userId`.
 
@@ -795,6 +799,157 @@ type DeleteGoalResponse = {
 Validation notes: ID must be valid.
 
 Ownership rule: delete only authenticated user's goal.
+
+Likely errors: `401 UNAUTHORIZED`, `404 NOT_FOUND`.
+
+## Connected Accounts and Transaction Import
+
+### GET /connected-accounts
+
+Purpose: list current user's read-only connected account records.
+
+Auth: required.
+
+Response:
+
+```ts
+type ConnectedAccountResponse = {
+  id: string;
+  provider: "gocardless_bank_data" | string;
+  providerConnectionId: string | null;
+  displayName: string;
+  accountType: "checking" | "savings" | "credit_card" | "digital_wallet";
+  status: "connecting" | "connected" | "needs_reconnect" | "disconnected" | "error";
+  currency: "EUR" | "GBP" | "USD";
+  institutionName: string;
+  consentExpiresAt: string | null;
+  lastImportAt: string | null;
+  lastSyncAt: string | null;
+  lastErrorCode: string | null;
+  lastErrorMessage: string | null;
+  importedExpenseCount: number;
+  lastImportedCount: number;
+  lastSkippedDuplicateCount: number;
+  lastImportFailedCount: number;
+  lastImportMessage: string | null;
+};
+```
+
+Ownership rule: list only authenticated user's connected accounts.
+
+Likely errors: `401 UNAUTHORIZED`.
+
+### GET /connected-accounts/institutions
+
+Purpose: list provider institutions for a country.
+
+Auth: required.
+
+Request query:
+
+```ts
+type ListInstitutionsQuery = {
+  country?: string;
+};
+```
+
+Validation notes: `country` defaults to `DE`.
+
+Likely errors: `401 UNAUTHORIZED`, `502 INTERNAL_ERROR` for provider failures.
+
+### POST /connected-accounts/link/start
+
+Purpose: create a GoCardless requisition and return the bank consent link.
+
+Auth: required.
+
+Request:
+
+```ts
+type StartBankConnectionRequest = {
+  institutionId?: string;
+  country?: string;
+  userLanguage?: string;
+};
+```
+
+Response:
+
+```ts
+type StartBankConnectionResponse = {
+  connection: ConnectedAccountResponse;
+  linkUrl: string;
+};
+```
+
+Validation notes: provider credentials must be configured server-side.
+
+Ownership rule: server assigns authenticated `userId`.
+
+Likely errors: `401 UNAUTHORIZED`, `503 INTERNAL_ERROR`, `502 INTERNAL_ERROR`.
+
+### GET /connected-accounts/link/callback
+
+Purpose: complete a bank connection after provider consent redirect.
+
+Auth: required.
+
+Request query:
+
+```ts
+type BankConnectionCallbackQuery = {
+  connectionId: string;
+};
+```
+
+Behavior: fetch provider requisition accounts, store external accounts, write consent records, and redirect back to the frontend.
+
+Likely errors: `401 UNAUTHORIZED`, `404 NOT_FOUND`, `502 INTERNAL_ERROR`.
+
+### POST /connected-accounts/:id/import
+
+Purpose: fetch provider transactions, dedupe them, save external transaction records, and create expenses.
+
+Auth: required.
+
+Response:
+
+```ts
+type ImportTransactionsResponse = {
+  result: {
+    importBatchId: string;
+    importedCount: number;
+    skippedDuplicateCount: number;
+    failedCount: number;
+    message: string;
+  };
+};
+```
+
+Import rules:
+
+- Import only outgoing booked transactions as expenses.
+- Store provider transaction records before creating app expenses.
+- Use provider account ID plus provider transaction ID as the strongest duplicate key.
+- Set `entrySource` to `connected_account`.
+
+Likely errors: `401 UNAUTHORIZED`, `404 NOT_FOUND`, `502 INTERNAL_ERROR`.
+
+### DELETE /connected-accounts/:id
+
+Purpose: remove a connected account record and provider metadata.
+
+Auth: required.
+
+Response:
+
+```ts
+type DeleteConnectedAccountResponse = {
+  success: true;
+};
+```
+
+Ownership rule: delete only authenticated user's connection. Existing expenses are retained because `Expense.sourceAccountId` uses `onDelete: SetNull`.
 
 Likely errors: `401 UNAUTHORIZED`, `404 NOT_FOUND`.
 

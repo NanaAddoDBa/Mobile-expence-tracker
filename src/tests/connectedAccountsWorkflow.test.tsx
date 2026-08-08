@@ -67,6 +67,7 @@ describe("connected account workflow", () => {
         <ConnectedAccountsPanel
           accounts={[]}
           onConnectAccounts={() => undefined}
+          onStartRealConnection={async () => undefined}
           onImportMockExpenses={async () => undefined}
           onReconnectAccount={async () => undefined}
           onRemoveAccount={() => undefined}
@@ -86,6 +87,7 @@ describe("connected account workflow", () => {
         <ConnectedAccountsPanel
           accounts={[]}
           onConnectAccounts={onConnectAccounts}
+          onStartRealConnection={async () => undefined}
           onImportMockExpenses={async () => undefined}
           onReconnectAccount={async () => undefined}
           onRemoveAccount={() => undefined}
@@ -115,12 +117,63 @@ describe("connected account workflow", () => {
     expect(screen.getByText("Account connected")).toBeTruthy();
   });
 
+  test("real connection flow picks a bank before starting provider consent", async () => {
+    const user = userEvent.setup();
+    const onListBankInstitutions = vi.fn().mockResolvedValue([
+      {
+        id: "REVOLUT_REVOGB21",
+        name: "Revolut",
+        bic: "REVOGB21",
+        countries: ["DE"],
+      },
+      {
+        id: "SANDBOXFINANCE_SFIN0000",
+        name: "Sandbox Finance",
+        bic: "SFIN0000",
+        countries: ["DE"],
+      },
+    ]);
+    const onStartRealConnection = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <FeedbackProvider>
+        <ConnectedAccountsPanel
+          accounts={[]}
+          realApiMode
+          onConnectAccounts={() => undefined}
+          onListBankInstitutions={onListBankInstitutions}
+          onStartRealConnection={onStartRealConnection}
+          onImportMockExpenses={async () => undefined}
+          onReconnectAccount={async () => undefined}
+          onRemoveAccount={() => undefined}
+        />
+      </FeedbackProvider>
+    );
+
+    await user.click(screen.getAllByRole("button", { name: "Connect account" })[0]);
+
+    expect(await screen.findByText("Select bank")).toBeTruthy();
+    expect(onListBankInstitutions).toHaveBeenCalledWith("DE");
+    expect(await screen.findByText("Revolut")).toBeTruthy();
+
+    await user.type(screen.getByPlaceholderText("Search by bank name or BIC"), "revo");
+    await user.click(screen.getByRole("button", { name: /Revolut/ }));
+    await user.click(screen.getByRole("button", { name: "Continue to bank" }));
+
+    expect(onStartRealConnection).toHaveBeenCalledWith({
+      institutionId: "REVOLUT_REVOGB21",
+      country: "DE",
+      userLanguage: "EN",
+    });
+  });
+
   test("connected account card shows read-only status", () => {
     render(
       <FeedbackProvider>
         <ConnectedAccountsPanel
           accounts={[{ ...connectedAccount, type: "checking" }]}
           onConnectAccounts={() => undefined}
+          onStartRealConnection={async () => undefined}
           onImportMockExpenses={async () => undefined}
           onReconnectAccount={async () => undefined}
           onRemoveAccount={() => undefined}
@@ -143,6 +196,7 @@ describe("connected account workflow", () => {
         <ConnectedAccountsPanel
           accounts={[connectedAccount]}
           onConnectAccounts={() => undefined}
+          onStartRealConnection={async () => undefined}
           onImportMockExpenses={onImportMockExpenses}
           onReconnectAccount={async () => undefined}
           onRemoveAccount={() => undefined}
@@ -164,6 +218,7 @@ describe("connected account workflow", () => {
         <ConnectedAccountsPanel
           accounts={[{ ...connectedAccount, status: "needs_reconnect", isConnected: false }]}
           onConnectAccounts={() => undefined}
+          onStartRealConnection={async () => undefined}
           onImportMockExpenses={async () => undefined}
           onReconnectAccount={onReconnectAccount}
           onRemoveAccount={() => undefined}
@@ -188,6 +243,7 @@ describe("connected account workflow", () => {
         <ConnectedAccountsPanel
           accounts={[connectedAccount]}
           onConnectAccounts={() => undefined}
+          onStartRealConnection={async () => undefined}
           onImportMockExpenses={async () => undefined}
           onReconnectAccount={async () => undefined}
           onRemoveAccount={onRemoveAccount}

@@ -274,9 +274,9 @@ npm run dev
 
 Open the local URL shown in the terminal.
 
-## Backend API Scaffold
+## Backend API and Database Scaffold
 
-The `server/` folder contains an independent NestJS TypeScript API scaffold for future Backend V1 work.
+The `server/` folder contains an independent NestJS TypeScript API scaffold and a PostgreSQL-ready Prisma schema for future Backend V1 work. See `server/README.md` for database setup and Prisma commands.
 
 Install backend dependencies:
 
@@ -293,12 +293,15 @@ npm run dev:api
 Backend checks:
 
 ```bash
+npm run db:format
+npm run db:validate
+npm run db:generate
 npm run build:api
 npm run test:api
 npm run test:e2e:api
 ```
 
-The backend currently exposes only basic app and health endpoints. It does not yet include auth, database persistence, Open Banking, OCR, or payments.
+The backend currently exposes only basic app and health endpoints. Its schema and Prisma service are infrastructure only; it does not yet include auth, business CRUD APIs, live database workflows, Open Banking, OCR, or payments.
 
 ## Available Scripts
 
