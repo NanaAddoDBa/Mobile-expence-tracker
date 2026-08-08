@@ -5,6 +5,8 @@ import { useExpenses } from "../../app/providers/ExpenseProvider";
 import { Card } from "../../components/ui/Card";
 import { BudgetCard } from "../../components/budgets/BudgetCard";
 import { BudgetFormModal } from "../../components/budgets/BudgetFormModal";
+import { ErrorState } from "../../components/feedback/ErrorState";
+import { LoadingState } from "../../components/feedback/LoadingState";
 import { getCurrentMonthKey } from "../../lib/dateUtils";
 import { BudgetFormSubmitPayload } from "./types/budgetForm.types";
 import { useFeedback } from "../../app/providers/FeedbackProvider";
@@ -14,9 +16,12 @@ import { budgetRecommendationService } from "./services/budgetRecommendationServ
 export const BudgetManagerView: React.FC = () => {
   const {
     budgets,
+    isLoading,
+    errorMessage,
     addBudget,
     editBudget,
     deleteBudget,
+    reloadBudgets,
   } = useBudgets();
   const { expenses } = useExpenses();
   const { showInfo } = useFeedback();
@@ -114,7 +119,18 @@ export const BudgetManagerView: React.FC = () => {
         )}
       </div>
 
-      {/* RECOMMENDATIONS & GENERAL STATS */}
+      {isLoading && <LoadingState label="Loading budgets..." />}
+
+      {errorMessage && !isLoading && (
+        <ErrorState
+          message={errorMessage}
+          onRetry={() => {
+            void reloadBudgets();
+          }}
+        />
+      )}
+
+      {!isLoading && !errorMessage && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Core Envelopes Display */}
         <div className="lg:col-span-2 space-y-6">
@@ -197,6 +213,7 @@ export const BudgetManagerView: React.FC = () => {
           </Card>
         </div>
       </div>
+      )}
 
       {/* DIALOG OVERLAY - ADD BUDGET */}
       <BudgetFormModal

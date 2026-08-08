@@ -25,6 +25,7 @@ export enum ExpenseCategory {
   EDUCATION = "education",
   SUBSCRIPTIONS = "subscriptions",
   TRANSFERS = "transfers",
+  TRAVEL = "travel",
   OTHER = "other",
 }
 
@@ -34,6 +35,13 @@ export enum RecurringFrequency {
   BI_WEEKLY = "bi-weekly",
   MONTHLY = "monthly",
   YEARLY = "yearly",
+}
+
+export enum GoalStatus {
+  ACTIVE = "active",
+  COMPLETED = "completed",
+  PAUSED = "paused",
+  ARCHIVED = "archived",
 }
 
 export enum CurrencyCode {

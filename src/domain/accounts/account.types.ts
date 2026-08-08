@@ -12,7 +12,23 @@ export type ConnectedAccountStatus =
   | "importing"
   | "error";
 export type ConnectedAccountAccessType = "read_only";
-export type ConnectedAccountMode = "mock";
+export type ConnectedAccountMode = "mock" | "real";
+
+export interface BankInstitution {
+  id: string;
+  name: string;
+  bic?: string;
+  countries?: string[];
+  logo?: string;
+  transactionTotalDays?: number;
+  maxAccessValidForDays?: number;
+}
+
+export interface StartBankConnectionInput {
+  institutionId?: string;
+  country?: string;
+  userLanguage?: string;
+}
 
 export interface ConnectedAccount {
   id: string;

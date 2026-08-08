@@ -2,6 +2,7 @@ export type AppErrorCode =
   | "STORAGE_ERROR"
   | "VALIDATION_ERROR"
   | "IMPORT_ERROR"
+  | "BANK_CONNECTION_ERROR"
   | "RECEIPT_SCAN_ERROR"
   | "UNKNOWN_ERROR";
 
@@ -24,6 +25,8 @@ export function getUserFriendlyErrorMessage(error: AppError | unknown): string {
         return "Please check the details and try again.";
       case "IMPORT_ERROR":
         return "Import failed. Please try again.";
+      case "BANK_CONNECTION_ERROR":
+        return "Bank connection failed. Please try again.";
       case "RECEIPT_SCAN_ERROR":
         return "Receipt scanning failed. Please try again.";
       case "UNKNOWN_ERROR":

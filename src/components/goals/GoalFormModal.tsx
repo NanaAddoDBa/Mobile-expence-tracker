@@ -90,7 +90,7 @@ export const GoalFormModal: React.FC<GoalFormModalProps> = ({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-              Target Amount (€)
+              Target Amount (EUR)
             </label>
             <input
               type="number"
@@ -119,7 +119,7 @@ export const GoalFormModal: React.FC<GoalFormModalProps> = ({
 
         <div>
           <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-            Current Savings (€)
+            Current Savings (EUR)
           </label>
           <input
             type="number"

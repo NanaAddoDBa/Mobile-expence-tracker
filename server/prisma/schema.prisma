@@ -40,6 +40,7 @@ enum ExpenseCategory {
   EDUCATION
   SUBSCRIPTIONS
   TRANSFERS
+  TRAVEL
   OTHER
 }
 
@@ -74,6 +75,7 @@ enum NotificationStatus {
 }
 
 enum ConnectedAccountStatus {
+  CONNECTING
   CONNECTED
   NEEDS_RECONNECT
   DISCONNECTED
@@ -307,28 +309,33 @@ model ReceiptExtraction {
 }
 
 model ConnectedAccount {
-  id                   String                 @id @default(cuid())
-  userId               String
-  provider             String
-  providerConnectionId String?
-  displayName          String
-  accountType          AccountType
-  status               ConnectedAccountStatus @default(CONNECTED)
-  currency             CurrencyCode           @default(EUR)
-  lastImportAt         DateTime?
-  lastSyncAt           DateTime?
-  lastErrorCode        String?
-  lastErrorMessage     String?
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
-  user                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  externalAccounts     ExternalAccount[]
-  expenses             Expense[]
-  importBatches        ImportBatch[]
-  consentRecords       ConsentRecord[]
-  syncRuns             AccountSyncRun[]
+  id                    String                 @id @default(cuid())
+  userId                String
+  provider              String
+  providerConnectionId  String?
+  providerInstitutionId String?
+  providerAgreementId   String?
+  displayName           String
+  accountType           AccountType
+  status                ConnectedAccountStatus @default(CONNECTED)
+  currency              CurrencyCode           @default(EUR)
+  consentExpiresAt      DateTime?
+  lastImportAt          DateTime?
+  lastSyncAt            DateTime?
+  lastErrorCode         String?
+  lastErrorMessage      String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  externalAccounts      ExternalAccount[]
+  expenses              Expense[]
+  importBatches         ImportBatch[]
+  consentRecords        ConsentRecord[]
+  syncRuns              AccountSyncRun[]
+  externalTransactions  ExternalTransaction[]
 
   @@index([userId, status])
+  @@index([provider, providerConnectionId])
 }
 
 model ExternalAccount {
@@ -339,6 +346,7 @@ model ExternalAccount {
   displayName        String
   accountType        AccountType
   currency           CurrencyCode     @default(EUR)
+  isSelected         Boolean          @default(true)
   metadata           Json?
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
@@ -370,26 +378,29 @@ model ImportBatch {
 }
 
 model ExternalTransaction {
-  id                    String           @id @default(cuid())
+  id                    String            @id @default(cuid())
   userId                String
+  connectedAccountId    String?
   importBatchId         String?
   providerTransactionId String
   providerAccountId     String?
   merchantName          String?
   description           String?
   amountMinor           Int
-  currency              CurrencyCode     @default(EUR)
+  currency              CurrencyCode      @default(EUR)
   postedDate            DateTime
   rawCategory           String?
   normalizedCategory    ExpenseCategory?
   dedupeHash            String
   metadata              Json?
-  createdAt             DateTime         @default(now())
-  user                  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  importBatch           ImportBatch?     @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  createdAt             DateTime          @default(now())
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectedAccount      ConnectedAccount? @relation(fields: [connectedAccountId], references: [id], onDelete: SetNull)
+  importBatch           ImportBatch?      @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
 
   @@unique([userId, providerTransactionId])
   @@index([userId, postedDate])
+  @@index([connectedAccountId])
   @@index([dedupeHash])
 }
 

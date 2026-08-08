@@ -48,7 +48,7 @@ export const DepositFormModal: React.FC<DepositFormModalProps> = ({
 
         <div>
           <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-            Savings Amount (€)
+            Savings Amount (EUR)
           </label>
           <input
             type="number"

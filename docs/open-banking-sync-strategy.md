@@ -2,7 +2,15 @@
 
 Open Banking should be added only after backend authentication, database persistence, expenses, budgets, goals, and receipt backend flows are stable.
 
+Implementation note: Backend V1 now includes a first read-only transaction import path through GoCardless Bank Account Data. Receipt backend flows, background sync workers, and production token operations remain later hardening work.
+
 The integration must be read-only account information access. Payment initiation is out of scope.
+
+Current provider:
+
+- GoCardless Bank Account Data.
+- Default sandbox institution: `SANDBOXFINANCE_SFIN0000`.
+- Required server environment: `GOCARDLESS_SECRET_ID`, `GOCARDLESS_SECRET_KEY`, `PUBLIC_API_URL`, and `DATABASE_URL`.
 
 ## Architecture Rule
 
@@ -13,7 +21,7 @@ The backend owns:
 - Provider session creation.
 - Provider callback handling.
 - Token exchange.
-- Token encryption.
+- Token handling. GoCardless Bank Account Data uses application credentials from server environment variables for this first adapter; future per-user token providers must encrypt stored tokens before persistence.
 - Consent records.
 - Account fetching.
 - Transaction fetching.

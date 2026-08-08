@@ -37,6 +37,8 @@ export const ProfileSettingsView: React.FC = () => {
     accounts,
     triggerMockImport,
     connectMockAccounts,
+    listBankInstitutions,
+    startRealBankConnection,
     reconnectAccount,
     removeMockAccount,
   } = useConnectedAccounts();
@@ -178,6 +180,8 @@ export const ProfileSettingsView: React.FC = () => {
             <ConnectedAccountsPanel
               accounts={accounts}
               onConnectAccounts={connectMockAccounts}
+              onListBankInstitutions={listBankInstitutions}
+              onStartRealConnection={startRealBankConnection}
               onImportMockExpenses={triggerMockImport}
               onReconnectAccount={reconnectAccount}
               onRemoveAccount={removeMockAccount}
