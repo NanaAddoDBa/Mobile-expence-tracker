@@ -1,0 +1,444 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+  PENDING_VERIFICATION
+}
+
+enum EntrySource {
+  MANUAL
+  RECEIPT_SCAN
+  CONNECTED_ACCOUNT
+  RECURRING_FORECAST
+}
+
+enum PaymentMethod {
+  CASH
+  DEBIT_CARD
+  CREDIT_CARD
+  DIGITAL_WALLET
+  BANK_TRANSFER
+}
+
+enum ExpenseCategory {
+  HOUSING
+  GROCERIES
+  TRANSPORT
+  UTILITIES
+  DINING
+  ENTERTAINMENT
+  HEALTH
+  SHOPPING
+  EDUCATION
+  SUBSCRIPTIONS
+  TRANSFERS
+  TRAVEL
+  OTHER
+}
+
+enum RecurringFrequency {
+  DAILY
+  WEEKLY
+  BI_WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
+  ARCHIVED
+}
+
+enum NotificationType {
+  BUDGET_ALERT
+  RECURRING_REMINDER
+  WEEKLY_SUMMARY
+  ACCOUNT_RECONNECT
+  IMPORT_FAILED
+  SYSTEM
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+enum ConnectedAccountStatus {
+  CONNECTING
+  CONNECTED
+  NEEDS_RECONNECT
+  DISCONNECTED
+  ERROR
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+  CREDIT_CARD
+  DIGITAL_WALLET
+}
+
+enum ConsentStatus {
+  STARTED
+  GRANTED
+  EXPIRED
+  REVOKED
+  ERROR
+}
+
+enum ImportStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  PARTIAL
+  FAILED
+  RATE_LIMITED
+}
+
+enum CurrencyCode {
+  EUR
+  GBP
+  USD
+}
+
+model User {
+  id                   String                @id @default(cuid())
+  email                String                @unique
+  name                 String?
+  passwordHash         String?
+  emailVerifiedAt      DateTime?
+  lastLoginAt          DateTime?
+  status               UserStatus            @default(ACTIVE)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  settings             UserSettings?
+  sessions             Session[]
+  expenses             Expense[]
+  budgets              Budget[]
+  goals                Goal[]
+  notifications        Notification[]
+  auditLogs            AuditLog[]
+  connectedAccounts    ConnectedAccount[]
+  receipts             Receipt[]
+  receiptExtractions   ReceiptExtraction[]
+  externalAccounts     ExternalAccount[]
+  externalTransactions ExternalTransaction[]
+  importBatches        ImportBatch[]
+  consentRecords       ConsentRecord[]
+  accountSyncRuns      AccountSyncRun[]
+}
+
+model Session {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  userAgent String?
+  ipAddress String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+}
+
+model UserSettings {
+  id                        String       @id @default(cuid())
+  userId                    String       @unique
+  baseCurrency              CurrencyCode @default(EUR)
+  themePreference           String       @default("system")
+  budgetAlertsEnabled       Boolean      @default(true)
+  budgetAlertThreshold      Int          @default(80)
+  recurringRemindersEnabled Boolean      @default(true)
+  weeklySummaryEnabled      Boolean      @default(false)
+  largerText                Boolean      @default(false)
+  reduceMotion              Boolean      @default(false)
+  highContrast              Boolean      @default(false)
+  comfortableLayout         Boolean      @default(false)
+  createdAt                 DateTime     @default(now())
+  updatedAt                 DateTime     @updatedAt
+  user                      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Expense {
+  id                    String              @id @default(cuid())
+  userId                String
+  merchant              String
+  description           String?
+  amountMinor           Int
+  currency              CurrencyCode        @default(EUR)
+  date                  DateTime
+  category              ExpenseCategory
+  paymentMethod         PaymentMethod
+  entrySource           EntrySource         @default(MANUAL)
+  notes                 String?
+  receiptId             String?             @unique
+  sourceAccountId       String?
+  importBatchId         String?
+  externalTransactionId String?
+  isRecurring           Boolean             @default(false)
+  recurringFrequency    RecurringFrequency?
+  recurringTemplateId   String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  receipt               Receipt?            @relation(fields: [receiptId], references: [id], onDelete: SetNull)
+  connectedAccount      ConnectedAccount?   @relation(fields: [sourceAccountId], references: [id], onDelete: SetNull)
+  importBatch           ImportBatch?        @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, externalTransactionId])
+  @@index([userId])
+  @@index([userId, date])
+  @@index([userId, category])
+  @@index([userId, entrySource])
+}
+
+model Budget {
+  id               String          @id @default(cuid())
+  userId           String
+  category         ExpenseCategory
+  limitAmountMinor Int
+  currency         CurrencyCode    @default(EUR)
+  monthKey         String
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category, monthKey])
+  @@index([userId, monthKey])
+}
+
+model Goal {
+  id                 String       @id @default(cuid())
+  userId             String
+  name               String
+  targetAmountMinor  Int
+  currentAmountMinor Int          @default(0)
+  currency           CurrencyCode @default(EUR)
+  targetDate         DateTime?
+  status             GoalStatus   @default(ACTIVE)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+model Notification {
+  id        String             @id @default(cuid())
+  userId    String
+  type      NotificationType
+  status    NotificationStatus @default(UNREAD)
+  title     String
+  message   String
+  metadata  Json?
+  createdAt DateTime           @default(now())
+  readAt    DateTime?
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model Receipt {
+  id              String              @id @default(cuid())
+  userId          String
+  fileUrl         String?
+  fileName        String?
+  mimeType        String?
+  status          String              @default("PENDING")
+  linkedExpenseId String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expense         Expense?
+  extractions     ReceiptExtraction[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model ReceiptExtraction {
+  id               String        @id @default(cuid())
+  userId           String
+  receiptId        String
+  vendorName       String?
+  transactionDate  DateTime?
+  totalAmountMinor Int?
+  currency         CurrencyCode?
+  confidence       Float?
+  rawText          String?
+  provider         String        @default("mock")
+  createdAt        DateTime      @default(now())
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  receipt          Receipt       @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([receiptId])
+}
+
+model ConnectedAccount {
+  id                    String                 @id @default(cuid())
+  userId                String
+  provider              String
+  providerConnectionId  String?
+  providerInstitutionId String?
+  providerAgreementId   String?
+  displayName           String
+  accountType           AccountType
+  status                ConnectedAccountStatus @default(CONNECTED)
+  currency              CurrencyCode           @default(EUR)
+  consentExpiresAt      DateTime?
+  lastImportAt          DateTime?
+  lastSyncAt            DateTime?
+  lastErrorCode         String?
+  lastErrorMessage      String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  externalAccounts      ExternalAccount[]
+  expenses              Expense[]
+  importBatches         ImportBatch[]
+  consentRecords        ConsentRecord[]
+  syncRuns              AccountSyncRun[]
+  externalTransactions  ExternalTransaction[]
+
+  @@index([userId, status])
+  @@index([provider, providerConnectionId])
+}
+
+model ExternalAccount {
+  id                 String           @id @default(cuid())
+  userId             String
+  connectedAccountId String
+  providerAccountId  String
+  displayName        String
+  accountType        AccountType
+  currency           CurrencyCode     @default(EUR)
+  isSelected         Boolean          @default(true)
+  metadata           Json?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectedAccount   ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([connectedAccountId, providerAccountId])
+  @@index([userId])
+}
+
+model ImportBatch {
+  id                    String                @id @default(cuid())
+  userId                String
+  connectedAccountId    String?
+  status                ImportStatus          @default(PENDING)
+  importedCount         Int                   @default(0)
+  skippedDuplicateCount Int                   @default(0)
+  failedCount           Int                   @default(0)
+  message               String?
+  startedAt             DateTime              @default(now())
+  completedAt           DateTime?
+  user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectedAccount      ConnectedAccount?     @relation(fields: [connectedAccountId], references: [id], onDelete: SetNull)
+  expenses              Expense[]
+  externalTransactions  ExternalTransaction[]
+
+  @@index([userId, startedAt])
+  @@index([connectedAccountId])
+}
+
+model ExternalTransaction {
+  id                    String            @id @default(cuid())
+  userId                String
+  connectedAccountId    String?
+  importBatchId         String?
+  providerTransactionId String
+  providerAccountId     String?
+  merchantName          String?
+  description           String?
+  amountMinor           Int
+  currency              CurrencyCode      @default(EUR)
+  postedDate            DateTime
+  rawCategory           String?
+  normalizedCategory    ExpenseCategory?
+  dedupeHash            String
+  metadata              Json?
+  createdAt             DateTime          @default(now())
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectedAccount      ConnectedAccount? @relation(fields: [connectedAccountId], references: [id], onDelete: SetNull)
+  importBatch           ImportBatch?      @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, providerTransactionId])
+  @@index([userId, postedDate])
+  @@index([connectedAccountId])
+  @@index([dedupeHash])
+}
+
+model ConsentRecord {
+  id                 String            @id @default(cuid())
+  userId             String
+  connectedAccountId String?
+  provider           String
+  status             ConsentStatus
+  grantedAt          DateTime?
+  expiresAt          DateTime?
+  revokedAt          DateTime?
+  metadata           Json?
+  createdAt          DateTime          @default(now())
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectedAccount   ConnectedAccount? @relation(fields: [connectedAccountId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([provider])
+}
+
+model AccountSyncRun {
+  id                    String            @id @default(cuid())
+  userId                String
+  connectedAccountId    String?
+  status                ImportStatus
+  startedAt             DateTime          @default(now())
+  completedAt           DateTime?
+  providerRequestCount  Int               @default(0)
+  importedCount         Int               @default(0)
+  skippedDuplicateCount Int               @default(0)
+  failedCount           Int               @default(0)
+  errorCode             String?
+  errorMessage          String?
+  metadata              Json?
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectedAccount      ConnectedAccount? @relation(fields: [connectedAccountId], references: [id], onDelete: SetNull)
+
+  @@index([userId, startedAt])
+  @@index([connectedAccountId, status])
+}

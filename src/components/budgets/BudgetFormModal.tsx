@@ -88,7 +88,7 @@ export const BudgetFormModal: React.FC<BudgetFormModalProps> = ({
 
         <div>
           <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-            Limit Amount (€)
+            Limit Amount (EUR)
           </label>
           <input
             type="number"

@@ -6,6 +6,8 @@ export interface Goal {
   targetAmount: number;
   currentAmount: number;
   targetDate: string; // YYYY-MM-DD
+  currency?: "EUR";
+  status?: "active" | "completed" | "paused" | "archived";
 }
 
 export type CreateGoalModel = Omit<Goal, "id">;

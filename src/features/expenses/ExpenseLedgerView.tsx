@@ -3,6 +3,8 @@ import { useAppNavigation } from "../../app/providers/AppNavigationProvider";
 import { useConnectedAccounts } from "../../app/providers/AccountConnectionProvider";
 import { useExpenses } from "../../app/providers/ExpenseProvider";
 import { CATEGORY_OPTIONS, PAYMENT_METHODS } from "../../domain/expenses/expense.constants";
+import { ErrorState } from "../../components/feedback/ErrorState";
+import { LoadingState } from "../../components/feedback/LoadingState";
 import { useExpenseActions } from "./hooks/useExpenseActions";
 import { useExpenseFilters } from "./hooks/useExpenseFilters";
 import { ExpenseFilterToolbar } from "./components/ExpenseFilterToolbar";
@@ -13,9 +15,12 @@ import { ExpenseTable } from "./components/ExpenseTable";
 export const ExpenseLedgerView: React.FC = () => {
   const {
     expenses,
+    isLoading,
+    errorMessage,
     addExpense,
     editExpense,
     deleteExpense,
+    reloadExpenses,
   } = useExpenses();
   const {
     accounts,
@@ -57,30 +62,45 @@ export const ExpenseLedgerView: React.FC = () => {
     <div className="space-y-6">
       <ExpenseHeader onAddExpense={expenseActions.openAddExpense} />
 
-      <ExpenseFilterToolbar
-        expenseQuery={expenseQuery}
-        setExpenseQuery={expenseFilters.setQuery}
-        selectedCategory={expenseFilters.filters.category}
-        setSelectedCategory={expenseFilters.setCategory}
-        selectedPaymentMethod={expenseFilters.filters.paymentMethod}
-        setSelectedPaymentMethod={expenseFilters.setPaymentMethod}
-        selectedMonth={expenseFilters.filters.month}
-        setSelectedMonth={expenseFilters.setMonth}
-        selectedRecurrence={expenseFilters.filters.recurrence}
-        setSelectedRecurrence={expenseFilters.setRecurrence}
-        handleClearFilters={expenseFilters.resetFilters}
-        hasActiveFilters={expenseFilters.hasActiveFilters}
-        categoryOptions={CATEGORY_OPTIONS}
-        paymentMethods={PAYMENT_METHODS}
-      />
+      {isLoading && <LoadingState label="Loading expenses..." />}
 
-      <ExpenseTable
-        filteredExpenses={expenseFilters.filteredExpenses}
-        emptyStateTitle={emptyState.title}
-        emptyStateDescription={emptyState.description}
-        onEditClick={expenseActions.openEditExpense}
-        onDeleteClick={deleteExpense}
-      />
+      {errorMessage && !isLoading && (
+        <ErrorState
+          message={errorMessage}
+          onRetry={() => {
+            void reloadExpenses();
+          }}
+        />
+      )}
+
+      {!isLoading && !errorMessage && (
+        <>
+          <ExpenseFilterToolbar
+            expenseQuery={expenseQuery}
+            setExpenseQuery={expenseFilters.setQuery}
+            selectedCategory={expenseFilters.filters.category}
+            setSelectedCategory={expenseFilters.setCategory}
+            selectedPaymentMethod={expenseFilters.filters.paymentMethod}
+            setSelectedPaymentMethod={expenseFilters.setPaymentMethod}
+            selectedMonth={expenseFilters.filters.month}
+            setSelectedMonth={expenseFilters.setMonth}
+            selectedRecurrence={expenseFilters.filters.recurrence}
+            setSelectedRecurrence={expenseFilters.setRecurrence}
+            handleClearFilters={expenseFilters.resetFilters}
+            hasActiveFilters={expenseFilters.hasActiveFilters}
+            categoryOptions={CATEGORY_OPTIONS}
+            paymentMethods={PAYMENT_METHODS}
+          />
+
+          <ExpenseTable
+            filteredExpenses={expenseFilters.filteredExpenses}
+            emptyStateTitle={emptyState.title}
+            emptyStateDescription={emptyState.description}
+            onEditClick={expenseActions.openEditExpense}
+            onDeleteClick={deleteExpense}
+          />
+        </>
+      )}
 
       <ExpenseFormModal
         isOpen={expenseActions.isAddOpen}

@@ -151,6 +151,17 @@ describe("mock API clients", () => {
     expect(await accountApi.listConnectedAccounts()).toEqual([connectedAccount]);
   });
 
+  test("accountApi exposes mock bank institutions for demo account selection", async () => {
+    const institutions = await accountApi.listBankInstitutions("DE");
+
+    expect(institutions.length).toBeGreaterThan(0);
+    expect(institutions[0]).toMatchObject({
+      id: expect.any(String),
+      name: expect.any(String),
+      countries: ["DE"],
+    });
+  });
+
   test("notificationApi delegates to mock notification persistence", async () => {
     await notificationApi.replaceNotifications([notification]);
     expect(await notificationApi.listNotifications()).toEqual([notification]);

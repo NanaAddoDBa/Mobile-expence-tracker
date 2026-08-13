@@ -17,6 +17,8 @@ const mocks = vi.hoisted(() => ({
   logout: vi.fn(),
   setThemeMode: vi.fn(),
   connectMockAccounts: vi.fn(),
+  listBankInstitutions: vi.fn(),
+  startRealBankConnection: vi.fn(),
   reconnectAccount: vi.fn(),
   removeMockAccount: vi.fn(),
   triggerMockImport: vi.fn(),
@@ -91,6 +93,8 @@ vi.mock("../app/providers/AccountConnectionProvider", () => ({
   useConnectedAccounts: () => ({
     accounts: mockAccounts,
     connectMockAccounts: mocks.connectMockAccounts,
+    listBankInstitutions: mocks.listBankInstitutions,
+    startRealBankConnection: mocks.startRealBankConnection,
     reconnectAccount: mocks.reconnectAccount,
     removeMockAccount: mocks.removeMockAccount,
     triggerMockImport: mocks.triggerMockImport,
@@ -220,6 +224,7 @@ describe("profile and settings panels", () => {
         accounts={mockAccounts}
         onImportMockExpenses={mocks.triggerMockImport}
         onConnectAccounts={mocks.connectMockAccounts}
+        onStartRealConnection={async () => undefined}
         onReconnectAccount={mocks.reconnectAccount}
         onRemoveAccount={mocks.removeMockAccount}
       />
