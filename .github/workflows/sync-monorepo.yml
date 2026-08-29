@@ -1,0 +1,26 @@
+name: Sync monorepo mirror
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  request-sync:
+    name: Request monorepo sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify the monorepo
+        env:
+          GH_TOKEN: ${{ secrets.MONOREPO_SYNC_TOKEN }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          gh api \
+            --method POST \
+            repos/NanaAddoDBa/nana-monorepo/dispatches \
+            -f event_type=mobile-expense-tracker-updated \
+            -F "client_payload[source_sha]=${SOURCE_SHA}"
