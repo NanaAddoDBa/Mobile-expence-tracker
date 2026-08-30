@@ -36,7 +36,7 @@ const actions: {
   },
   {
     label: "Create budget",
-    description: "Set a monthly category budget and track spending.",
+    description: "Set daily, weekly, monthly, or annual category budgets.",
     targetView: "budgets",
     icon: <Sliders className="w-5 h-5" />,
   },

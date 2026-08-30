@@ -94,7 +94,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete, 
     {
       id: "create-budget",
       title: "Create budget",
-      description: "Set a monthly category budget and track spending.",
+      description: "Set daily, weekly, monthly, or annual category budgets.",
       icon: <Sliders className="w-5 h-5" />,
     },
     {
