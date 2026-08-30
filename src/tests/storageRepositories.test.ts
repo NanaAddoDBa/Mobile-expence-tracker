@@ -25,6 +25,8 @@ const budget: Budget = {
   id: "budget-1",
   category: "Food & Grocery",
   limitAmount: 400,
+  period: "monthly",
+  periodKey: "2026-06",
 };
 
 const goal: Goal = {
@@ -81,6 +83,24 @@ describe("storage adapters and mock repositories", () => {
 
     expect(budgetRepository.getAll()).toEqual([budget]);
     expect(goalRepository.getAll()).toEqual([goal]);
+  });
+
+  test("normalizes legacy browser budgets as monthly budgets", () => {
+    const storage = createMemoryStorageAdapter();
+    storage.setItem("exp_budgets", JSON.stringify([{
+      id: "legacy-budget",
+      category: "Food & Grocery",
+      limitAmount: 300,
+      monthKey: "2026-05",
+    }]));
+
+    expect(createBudgetRepository(storage).getAll()).toEqual([{
+      id: "legacy-budget",
+      category: "Food & Grocery",
+      limitAmount: 300,
+      period: "monthly",
+      periodKey: "2026-05",
+    }]);
   });
 
   test("account repository persists connected accounts through injected storage", () => {

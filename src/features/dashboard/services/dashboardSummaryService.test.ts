@@ -5,6 +5,7 @@ import {
   getBudgetUsageDetails,
   getBudgetUsagePercentage,
   getDashboardSearchResults,
+  getDashboardSummary,
   getDashboardSetupGuidance,
   getOverspendingAlerts,
   getRecentExpenses,
@@ -66,16 +67,22 @@ const budgets: Budget[] = [
     id: "budget-1",
     category: "Food & Grocery",
     limitAmount: 100,
+    period: "monthly",
+    periodKey: "2025-05",
   },
   {
     id: "budget-2",
     category: "Transport & Auto",
     limitAmount: 100,
+    period: "monthly",
+    periodKey: "2025-05",
   },
   {
     id: "budget-3",
     category: "Dining & Cafe",
     limitAmount: 50,
+    period: "monthly",
+    periodKey: "2025-05",
   },
 ];
 
@@ -119,6 +126,28 @@ describe("dashboardSummaryService", () => {
     expect(alerts.nearLimitCategories.map((category) => category.category)).toEqual([
       "Transport & Auto",
     ]);
+  });
+
+  test("excludes daily budgets from monthly dashboard totals", () => {
+    const summary = getDashboardSummary(
+      expenses,
+      [
+        ...budgets,
+        {
+          id: "daily-budget",
+          category: "Food & Grocery",
+          limitAmount: 10,
+          period: "daily",
+          periodKey: "2025-05-03",
+        },
+      ],
+      [],
+      "2025-05",
+      "2025-05-03",
+    );
+
+    expect(summary.totalBudgetLimit).toBe(250);
+    expect(summary.overallPercentage).toBe(92);
   });
 
   test("detects whether the dashboard has meaningful user data", () => {

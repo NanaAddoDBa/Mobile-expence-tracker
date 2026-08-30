@@ -4,7 +4,13 @@ import { Expense } from "../domain/expenses/expense.types";
 import { Budget } from "../domain/budgets/budget.types";
 
 const mockBudgets: Budget[] = [
-  { id: "b1", category: "Dining & Cafe", limitAmount: 100 },
+  {
+    id: "b1",
+    category: "Dining & Cafe",
+    limitAmount: 100,
+    period: "monthly",
+    periodKey: "2026-06",
+  },
 ];
 
 const mockExpenses: Expense[] = [
@@ -49,7 +55,13 @@ describe("budgetCalculationService", () => {
           isRecurring: false,
         },
       ],
-      [{ id: "b1", category: "Dining & Cafe", limitAmount: 200 }],
+      [{
+        id: "b1",
+        category: "Dining & Cafe",
+        limitAmount: 200,
+        period: "monthly",
+        periodKey: "2026-06",
+      }],
       "2026-06"
     );
 
@@ -100,5 +112,91 @@ describe("budgetCalculationService", () => {
     expect(summary.totalRemainingAmount).toBe(15);
     expect(summary.percentageUsed).toBe(85);
     expect(summary.warningCount).toBe(1);
+  });
+
+  test("calculates daily usage from only the selected date", () => {
+    const dailyBudget: Budget = {
+      id: "daily-1",
+      category: "Dining & Cafe",
+      limitAmount: 20,
+      period: "daily",
+      periodKey: "2026-06-01",
+    };
+
+    const usage = budgetCalculationService.getBudgetUsageForPeriod(
+      mockExpenses,
+      [...mockBudgets, dailyBudget],
+      "daily",
+      "2026-06-01",
+    );
+
+    expect(usage).toHaveLength(1);
+    expect(usage[0]).toMatchObject({
+      spentAmount: 15,
+      remainingAmount: 5,
+      percentageUsed: 75,
+      period: "daily",
+      periodKey: "2026-06-01",
+    });
+  });
+
+  test("calculates weekly usage from only the selected ISO week", () => {
+    const weeklyBudget: Budget = {
+      id: "weekly-1",
+      category: "Dining & Cafe",
+      limitAmount: 100,
+      period: "weekly",
+      periodKey: "2026-W23",
+    };
+    const usage = budgetCalculationService.getBudgetUsageForPeriod(
+      [
+        ...mockExpenses,
+        {
+          ...mockExpenses[0],
+          id: "previous-week",
+          date: "2026-05-31",
+          amount: 50,
+        },
+      ],
+      [weeklyBudget],
+      "weekly",
+      "2026-W23",
+    );
+
+    expect(usage[0]).toMatchObject({
+      spentAmount: 85,
+      period: "weekly",
+      periodKey: "2026-W23",
+    });
+  });
+
+  test("calculates annual usage from only the selected calendar year", () => {
+    const annualBudget: Budget = {
+      id: "annual-1",
+      category: "Dining & Cafe",
+      limitAmount: 1000,
+      period: "annual",
+      periodKey: "2026",
+    };
+    const usage = budgetCalculationService.getBudgetUsageForPeriod(
+      [
+        ...mockExpenses,
+        {
+          ...mockExpenses[0],
+          id: "previous-year",
+          date: "2025-12-31",
+          amount: 500,
+        },
+      ],
+      [annualBudget],
+      "annual",
+      "2026",
+    );
+
+    expect(usage[0]).toMatchObject({
+      spentAmount: 85,
+      period: "annual",
+      periodKey: "2026",
+    });
   });
 });

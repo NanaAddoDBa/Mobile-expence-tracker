@@ -70,7 +70,7 @@ describe("sampleDataService", () => {
   });
 
   test("creates budgets and full sample data without sharing fixture objects", () => {
-    const budgets = createSampleBudgets();
+    const budgets = createSampleBudgets(new Date(2027, 2, 10));
     const sampleData = createSampleData(new Date(2027, 2, 10));
 
     expect(budgets).toHaveLength(10);
@@ -78,7 +78,9 @@ describe("sampleDataService", () => {
     expect(sampleData.budgets).toHaveLength(10);
     expect(sampleData.goals).toHaveLength(3);
     expect(sampleData.accounts).toHaveLength(2);
-    expect(budgets[0]).not.toBe(createSampleBudgets()[0]);
+    expect(budgets.every((budget) => budget.period === "monthly")).toBe(true);
+    expect(budgets.every((budget) => budget.periodKey === "2027-03")).toBe(true);
+    expect(budgets[0]).not.toBe(createSampleBudgets(new Date(2027, 2, 10))[0]);
   });
 
   test("merges sample records without duplicating refreshed sample ids", () => {

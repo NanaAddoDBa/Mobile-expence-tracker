@@ -27,7 +27,7 @@ export interface SampleDataSet {
 export function createSampleData(referenceDate: Date = new Date()): SampleDataSet {
   return {
     expenses: createSampleExpenses(referenceDate),
-    budgets: createSampleBudgets(),
+    budgets: createSampleBudgets(referenceDate),
     goals: createSampleGoals(referenceDate),
     accounts: createSampleAccounts(referenceDate),
   };
@@ -45,8 +45,9 @@ export function createSampleExpenses(referenceDate: Date = new Date()): Expense[
   );
 }
 
-export function createSampleBudgets(): Budget[] {
-  return INITIAL_BUDGETS.map((budget) => ({ ...budget }));
+export function createSampleBudgets(referenceDate: Date = new Date()): Budget[] {
+  const periodKey = getCurrentMonthKey(referenceDate);
+  return INITIAL_BUDGETS.map((budget) => ({ ...budget, periodKey }));
 }
 
 export function createSampleAccounts(referenceDate: Date = new Date()): ConnectedAccount[] {

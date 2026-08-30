@@ -46,14 +46,14 @@ export function getBudgetThresholdNotification(
   if (usage.percentageUsed >= 100) {
     return createNotification(
       "warning",
-      `Overspending Alert: ${usage.category} is over budget (${usage.spentAmount.toFixed(2)} EUR spent of ${usage.limitAmount.toFixed(2)} EUR).`
+      `Overspending Alert: ${usage.category} is over its ${usage.period} budget (${usage.spentAmount.toFixed(2)} EUR spent of ${usage.limitAmount.toFixed(2)} EUR).`
     );
   }
 
   if (usage.percentageUsed >= threshold) {
     return createNotification(
       "info",
-      `Budget alert: You used ${usage.percentageUsed.toFixed(0)}% of your ${usage.category} budget (${usage.spentAmount.toFixed(2)} EUR of ${usage.limitAmount.toFixed(2)} EUR).`
+      `Budget alert: You used ${usage.percentageUsed.toFixed(0)}% of your ${usage.period} ${usage.category} budget (${usage.spentAmount.toFixed(2)} EUR of ${usage.limitAmount.toFixed(2)} EUR).`
     );
   }
 

@@ -5,7 +5,13 @@ import { Budget } from "../domain/budgets/budget.types";
 
 describe("budgetRecommendationService insights rules", () => {
   test("suggests custom insights for high spending", () => {
-    const budgets: Budget[] = [{ id: "b1", category: "Dining & Cafe", limitAmount: 50 }];
+    const budgets: Budget[] = [{
+      id: "b1",
+      category: "Dining & Cafe",
+      limitAmount: 50,
+      period: "monthly",
+      periodKey: "2026-06",
+    }];
     const expenses: Expense[] = [
       {
         id: "e1",
@@ -21,6 +27,6 @@ describe("budgetRecommendationService insights rules", () => {
     ];
 
     const recs = budgetRecommendationService.getRecommendations(expenses, budgets, "2026-06");
-    expect(recs.some((r) => r.includes("dining out"))).toBe(true);
+    expect(recs.some((r) => r.includes("dining and cafe"))).toBe(true);
   });
 });

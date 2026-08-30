@@ -1,6 +1,28 @@
 import { Expense } from "../expenses/expense.types";
-import { Budget, BudgetStatusDetail, BudgetStatus } from "./budget.types";
-import { getCurrentMonthKey, isSameMonth } from "../../lib/dateUtils";
+import {
+  Budget,
+  BudgetPeriod,
+  BudgetStatusDetail,
+  BudgetStatus,
+} from "./budget.types";
+import {
+  getCurrentMonthKey,
+  getCurrentYearKey,
+  getIsoWeekKey,
+  getTodayDateString,
+  isSameIsoWeek,
+  isSameMonth,
+} from "../../lib/dateUtils";
+
+export function getBudgetsForPeriod(
+  budgets: Budget[],
+  period: BudgetPeriod,
+  periodKey: string,
+): Budget[] {
+  return budgets.filter(
+    (budget) => budget.period === period && budget.periodKey === periodKey,
+  );
+}
 
 /**
  * Pure function to calculate spending per budget category based on a set of expenses.
@@ -9,17 +31,28 @@ import { getCurrentMonthKey, isSameMonth } from "../../lib/dateUtils";
 export function calculateBudgetUsage(
   expenses: Expense[],
   budgets: Budget[],
-  customYearMonth?: string // Format: "YYYY-MM"
+  periodKey?: string,
+  period: BudgetPeriod = "monthly",
 ): BudgetStatusDetail[] {
-  const currentMonthStr = customYearMonth || getCurrentMonthKey();
+  const defaultPeriodKeys: Record<BudgetPeriod, () => string> = {
+    daily: getTodayDateString,
+    weekly: getIsoWeekKey,
+    monthly: getCurrentMonthKey,
+    annual: getCurrentYearKey,
+  };
+  const activePeriodKey = periodKey ?? defaultPeriodKeys[period]();
 
-  const monthExpenses = expenses.filter((e) => {
+  const periodExpenses = expenses.filter((e) => {
     if (!e.date) return false;
-    return isSameMonth(e.date, currentMonthStr);
+    if (period === "daily") return e.date === activePeriodKey;
+    if (period === "weekly") return isSameIsoWeek(e.date, activePeriodKey);
+    if (period === "annual") return e.date.slice(0, 4) === activePeriodKey;
+    return isSameMonth(e.date, activePeriodKey);
   });
+  const activeBudgets = getBudgetsForPeriod(budgets, period, activePeriodKey);
 
-  return budgets.map((budget) => {
-    const spentAmount = monthExpenses
+  return activeBudgets.map((budget) => {
+    const spentAmount = periodExpenses
       .filter((e) => e.category.toLowerCase() === budget.category.toLowerCase())
       .reduce((sum, e) => sum + e.amount, 0);
 
@@ -40,6 +73,8 @@ export function calculateBudgetUsage(
       remainingAmount: +remainingAmount.toFixed(2),
       percentageUsed,
       status,
+      period,
+      periodKey: activePeriodKey,
     };
   });
 }

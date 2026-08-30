@@ -3,7 +3,10 @@ import { ConnectedAccount } from "../../../domain/accounts/account.types";
 import { Expense } from "../../../domain/expenses/expense.types";
 import { Goal } from "../../../domain/goals/goal.types";
 import { Receipt } from "../../../domain/receipts/receipt.types";
-import { calculateBudgetUsage } from "../../../domain/budgets/budget.rules";
+import {
+  calculateBudgetUsage,
+  getBudgetsForPeriod,
+} from "../../../domain/budgets/budget.rules";
 import { getCurrentMonthKey, getTodayDateString, isSameMonth } from "../../../lib/dateUtils";
 import { ForecastedExpense, generateForecastedExpenses } from "../../../lib/recurringExpenseEngine";
 
@@ -219,8 +222,9 @@ export function getDashboardSummary(
   referenceDate = getTodayDateString()
 ): DashboardSummary {
   const currentMonthExpenses = getThisMonthExpenses(expenses, monthKey);
-  const budgetUsage = getBudgetUsageDetails(expenses, budgets, monthKey);
-  const totalBudgetLimit = getTotalBudgetLimit(budgets);
+  const currentMonthBudgets = getBudgetsForPeriod(budgets, "monthly", monthKey);
+  const budgetUsage = getBudgetUsageDetails(expenses, currentMonthBudgets, monthKey);
+  const totalBudgetLimit = getTotalBudgetLimit(currentMonthBudgets);
   const totalBudgetSpent = getTotalBudgetSpent(budgetUsage);
   const alerts = getOverspendingAlerts(budgetUsage);
 
@@ -231,7 +235,7 @@ export function getDashboardSummary(
     totalBudgetLimit,
     totalBudgetSpent,
     overallRemaining: roundMoney(Math.max(0, totalBudgetLimit - totalBudgetSpent)),
-    overallPercentage: getBudgetUsagePercentage(budgets, budgetUsage),
+    overallPercentage: getBudgetUsagePercentage(currentMonthBudgets, budgetUsage),
     categoryRanking: getTopSpendingCategories(budgetUsage),
     forecasts: getRecurringExpensesDueSoon(expenses, referenceDate),
     ...alerts,

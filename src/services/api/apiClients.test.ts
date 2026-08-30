@@ -36,6 +36,8 @@ const replacementExpense: Expense = {
 const budgetPayload: Omit<Budget, "id"> = {
   category: "Food & Grocery",
   limitAmount: 400,
+  period: "monthly",
+  periodKey: "2026-06",
 };
 
 const replacementBudget: Budget = {
