@@ -137,7 +137,7 @@ Backend V1 provides authenticated budget tracking:
 - `PATCH /api/budgets/:id`
 - `DELETE /api/budgets/:id`
 
-Budgets are scoped to the authenticated user. Budget amounts are stored as integer minor units in `limitAmountMinor`, V1 accepts only `EUR`, and `monthKey` uses `YYYY-MM`. A user can have only one budget for the same category and month.
+Budgets are scoped to the authenticated user. Budget amounts are stored as integer minor units in `limitAmountMinor`, and V1 accepts only `EUR`. Period keys use `YYYY-MM-DD` for daily budgets, ISO `YYYY-Www` for weekly budgets, `YYYY-MM` for monthly budgets, and `YYYY` for annual budgets. A user can have only one budget for the same category, period, and period key.
 
 ## Goals
 

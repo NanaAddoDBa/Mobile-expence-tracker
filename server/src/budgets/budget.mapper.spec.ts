@@ -1,9 +1,11 @@
 import {
   Budget,
+  BudgetPeriod,
   CurrencyCode,
   ExpenseCategory,
 } from "@prisma/client";
 import {
+  BudgetPeriod as ApiBudgetPeriod,
   CurrencyCode as ApiCurrencyCode,
   ExpenseCategory as ApiExpenseCategory,
 } from "../common/validation/enums.dto";
@@ -20,7 +22,8 @@ describe("budget mapper", () => {
     category: ExpenseCategory.TRAVEL,
     limitAmountMinor: 40000,
     currency: CurrencyCode.EUR,
-    monthKey: "2026-08",
+    period: BudgetPeriod.MONTHLY,
+    periodKey: "2026-08",
     createdAt: new Date("2026-08-01T10:00:00.000Z"),
     updatedAt: new Date("2026-08-01T10:00:00.000Z"),
   };
@@ -31,7 +34,8 @@ describe("budget mapper", () => {
       category: "travel",
       limitAmountMinor: 40000,
       currency: "EUR",
-      monthKey: "2026-08",
+      period: "monthly",
+      periodKey: "2026-08",
     });
   });
 
@@ -43,8 +47,10 @@ describe("budget mapper", () => {
           category: ApiExpenseCategory.TRAVEL,
           limitAmountMinor: 40000,
           currency: ApiCurrencyCode.EUR,
-          monthKey: "2026-08",
+          period: ApiBudgetPeriod.MONTHLY,
+          periodKey: "2026-08",
         },
+        ApiBudgetPeriod.MONTHLY,
         "2026-08",
       ),
     ).toMatchObject({
@@ -52,7 +58,8 @@ describe("budget mapper", () => {
       category: ExpenseCategory.TRAVEL,
       limitAmountMinor: 40000,
       currency: CurrencyCode.EUR,
-      monthKey: "2026-08",
+      period: BudgetPeriod.MONTHLY,
+      periodKey: "2026-08",
     });
   });
 
@@ -60,9 +67,11 @@ describe("budget mapper", () => {
     expect(
       toBudgetUpdateInput({
         limitAmountMinor: 45000,
-      }),
+      }, ApiBudgetPeriod.MONTHLY, "2026-08"),
     ).toEqual({
       limitAmountMinor: 45000,
+      period: BudgetPeriod.MONTHLY,
+      periodKey: "2026-08",
     });
   });
 });

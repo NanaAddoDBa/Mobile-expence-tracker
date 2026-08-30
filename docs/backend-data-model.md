@@ -102,7 +102,7 @@ Future notes: imported expenses should preserve connected-account metadata witho
 
 ## Budget
 
-Purpose: user-created spending limit for a category and month.
+Purpose: user-created spending limit for a category and calendar day, ISO week, month, or year.
 
 Suggested fields:
 
@@ -111,7 +111,8 @@ Suggested fields:
 - `category`
 - `limitAmountMinor`
 - `currency`
-- `monthKey`
+- `period` (`DAILY`, `WEEKLY`, `MONTHLY`, or `ANNUAL`)
+- `periodKey` (`YYYY-MM-DD`, ISO `YYYY-Www`, `YYYY-MM`, or `YYYY` according to period)
 - `createdAt`
 - `updatedAt`
 
@@ -120,6 +121,8 @@ Relationships:
 - Belongs to `User`.
 
 Ownership model: all reads and writes scope by `userId`.
+
+Uniqueness rule: one budget per user, category, period, and period key.
 
 Privacy notes: budgets reveal spending priorities and should be treated as financial planning data.
 

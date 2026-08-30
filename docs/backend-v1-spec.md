@@ -80,7 +80,7 @@ Backend V1 modules:
 - `users`: profile data and account ownership.
 - `settings`: user preferences, notification preferences, accessibility preferences.
 - `expenses`: expense CRUD and source metadata.
-- `budgets`: budget CRUD and budget month/category rules.
+- `budgets`: budget CRUD and daily, weekly, monthly, and annual period/category rules.
 - `goals`: savings goal CRUD and manual contribution state.
 - `receipts`: placeholder only for future receipt records and OCR extraction links.
 - `connected-accounts`: placeholder only for future read-only account metadata.

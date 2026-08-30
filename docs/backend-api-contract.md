@@ -523,7 +523,7 @@ Purpose: list current user's budgets.
 
 Auth: required.
 
-Request: optional query params later.
+Request: optional `period` (`daily`, `weekly`, `monthly`, or `annual`) and `periodKey` query params. A period key without a period infers the period from its format.
 
 Response:
 
@@ -533,7 +533,8 @@ type BudgetResponse = {
   category: string;
   limitAmountMinor: number;
   currency: "EUR";
-  monthKey: string;
+  period: "daily" | "weekly" | "monthly" | "annual";
+  periodKey: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -543,7 +544,7 @@ type ListBudgetsResponse = {
 };
 ```
 
-Validation notes: validate query params when added.
+Validation notes: daily keys use `YYYY-MM-DD`, weekly keys use ISO `YYYY-Www`, monthly keys use `YYYY-MM`, and annual keys use `YYYY`. When both query params are supplied, the key must match the selected period.
 
 Ownership rule: list only authenticated user's budgets.
 
@@ -562,7 +563,8 @@ type CreateBudgetRequest = {
   category: string;
   limitAmountMinor: number;
   currency: "EUR";
-  monthKey?: string;
+  period?: "daily" | "weekly" | "monthly" | "annual";
+  periodKey?: string;
 };
 ```
 
@@ -579,8 +581,10 @@ Validation notes:
 - Category is required.
 - Limit must be positive.
 - Currency must be `EUR`.
-- Month key must be `YYYY-MM` when provided. If omitted, the server defaults to the current month.
-- A user should not have duplicate budgets for the same category and month.
+- Period defaults to `monthly` when omitted.
+- Daily period keys use `YYYY-MM-DD`, weekly keys use ISO `YYYY-Www`, monthly keys use `YYYY-MM`, and annual keys use `YYYY`.
+- If the period key is omitted, the server derives the current UTC day, ISO week, month, or year for the selected period.
+- A user cannot have duplicate budgets for the same category, period, and period key.
 
 Ownership rule: server assigns authenticated `userId`.
 

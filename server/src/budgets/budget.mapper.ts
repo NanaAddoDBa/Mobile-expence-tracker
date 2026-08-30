@@ -1,10 +1,12 @@
 import {
   Budget,
+  BudgetPeriod as PrismaBudgetPeriod,
   CurrencyCode as PrismaCurrencyCode,
   ExpenseCategory as PrismaExpenseCategory,
   Prisma,
 } from "@prisma/client";
 import {
+  BudgetPeriod,
   CurrencyCode,
   ExpenseCategory,
 } from "../common/validation/enums.dto";
@@ -16,10 +18,25 @@ export interface BudgetResponse {
   category: ExpenseCategory;
   limitAmountMinor: number;
   currency: CurrencyCode;
-  monthKey: string;
+  period: BudgetPeriod;
+  periodKey: string;
   createdAt: Date;
   updatedAt: Date;
 }
+
+const periodToPrisma: Record<BudgetPeriod, PrismaBudgetPeriod> = {
+  [BudgetPeriod.DAILY]: PrismaBudgetPeriod.DAILY,
+  [BudgetPeriod.WEEKLY]: PrismaBudgetPeriod.WEEKLY,
+  [BudgetPeriod.MONTHLY]: PrismaBudgetPeriod.MONTHLY,
+  [BudgetPeriod.ANNUAL]: PrismaBudgetPeriod.ANNUAL,
+};
+
+const periodFromPrisma: Record<PrismaBudgetPeriod, BudgetPeriod> = {
+  [PrismaBudgetPeriod.DAILY]: BudgetPeriod.DAILY,
+  [PrismaBudgetPeriod.WEEKLY]: BudgetPeriod.WEEKLY,
+  [PrismaBudgetPeriod.MONTHLY]: BudgetPeriod.MONTHLY,
+  [PrismaBudgetPeriod.ANNUAL]: BudgetPeriod.ANNUAL,
+};
 
 const categoryToPrisma: Record<ExpenseCategory, PrismaExpenseCategory> = {
   [ExpenseCategory.HOUSING]: PrismaExpenseCategory.HOUSING,
@@ -59,7 +76,8 @@ export function toBudgetResponse(budget: Budget): BudgetResponse {
     category: categoryFromPrisma[budget.category],
     limitAmountMinor: budget.limitAmountMinor,
     currency: budget.currency as CurrencyCode,
-    monthKey: budget.monthKey,
+    period: periodFromPrisma[budget.period],
+    periodKey: budget.periodKey,
     createdAt: budget.createdAt,
     updatedAt: budget.updatedAt,
   };
@@ -68,19 +86,23 @@ export function toBudgetResponse(budget: Budget): BudgetResponse {
 export function toBudgetCreateInput(
   userId: string,
   input: CreateBudgetDto,
-  monthKey: string,
+  period: BudgetPeriod,
+  periodKey: string,
 ): Prisma.BudgetUncheckedCreateInput {
   return {
     userId,
     category: categoryToPrisma[input.category],
     limitAmountMinor: input.limitAmountMinor,
     currency: PrismaCurrencyCode.EUR,
-    monthKey,
+    period: periodToPrisma[period],
+    periodKey,
   };
 }
 
 export function toBudgetUpdateInput(
   input: UpdateBudgetDto,
+  period: BudgetPeriod,
+  periodKey: string,
 ): Prisma.BudgetUncheckedUpdateInput {
   const data: Prisma.BudgetUncheckedUpdateInput = {};
 
@@ -96,9 +118,8 @@ export function toBudgetUpdateInput(
     data.currency = PrismaCurrencyCode.EUR;
   }
 
-  if (input.monthKey !== undefined) {
-    data.monthKey = input.monthKey;
-  }
+  data.period = periodToPrisma[period];
+  data.periodKey = periodKey;
 
   return data;
 }
@@ -107,4 +128,16 @@ export function toPrismaBudgetCategory(
   category: ExpenseCategory,
 ): PrismaExpenseCategory {
   return categoryToPrisma[category];
+}
+
+export function toPrismaBudgetPeriod(
+  period: BudgetPeriod,
+): PrismaBudgetPeriod {
+  return periodToPrisma[period];
+}
+
+export function fromPrismaBudgetPeriod(
+  period: PrismaBudgetPeriod,
+): BudgetPeriod {
+  return periodFromPrisma[period];
 }

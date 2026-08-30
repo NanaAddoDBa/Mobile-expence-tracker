@@ -1,10 +1,16 @@
-import { ConflictException, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from "@nestjs/common";
 import {
   Budget,
+  BudgetPeriod,
   CurrencyCode,
   ExpenseCategory,
 } from "@prisma/client";
 import {
+  BudgetPeriod as ApiBudgetPeriod,
   CurrencyCode as ApiCurrencyCode,
   ExpenseCategory as ApiExpenseCategory,
 } from "../common/validation/enums.dto";
@@ -18,7 +24,8 @@ describe("BudgetsService", () => {
     category: ExpenseCategory.GROCERIES,
     limitAmountMinor: 35000,
     currency: CurrencyCode.EUR,
-    monthKey: "2026-08",
+    period: BudgetPeriod.MONTHLY,
+    periodKey: "2026-08",
     createdAt: new Date("2026-08-01T10:00:00.000Z"),
     updatedAt: new Date("2026-08-01T10:00:00.000Z"),
   };
@@ -48,11 +55,18 @@ describe("BudgetsService", () => {
     const { prisma, service } = createService();
 
     await expect(
-      service.list("user-1", { monthKey: "2026-08" }),
+      service.list("user-1", {
+        period: ApiBudgetPeriod.MONTHLY,
+        periodKey: "2026-08",
+      }),
     ).resolves.toEqual([expect.objectContaining({ id: "budget-1" })]);
     expect(prisma.budget.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { userId: "user-1", monthKey: "2026-08" },
+        where: {
+          userId: "user-1",
+          period: BudgetPeriod.MONTHLY,
+          periodKey: "2026-08",
+        },
       }),
     );
   });
@@ -64,19 +78,21 @@ describe("BudgetsService", () => {
       category: ApiExpenseCategory.GROCERIES,
       limitAmountMinor: 35000,
       currency: ApiCurrencyCode.EUR,
-      monthKey: "2026-08",
+      period: ApiBudgetPeriod.MONTHLY,
+      periodKey: "2026-08",
     });
 
     expect(prisma.budget.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         userId: "user-1",
         category: ExpenseCategory.GROCERIES,
-        monthKey: "2026-08",
+        period: BudgetPeriod.MONTHLY,
+        periodKey: "2026-08",
       }),
     });
   });
 
-  it("rejects duplicate budgets for the same category and month", async () => {
+  it("rejects duplicate budgets for the same category and period", async () => {
     const { service } = createService({
       findFirst: jest.fn().mockResolvedValue({ id: "budget-1" }),
     });
@@ -86,9 +102,38 @@ describe("BudgetsService", () => {
         category: ApiExpenseCategory.GROCERIES,
         limitAmountMinor: 35000,
         currency: ApiCurrencyCode.EUR,
-        monthKey: "2026-08",
+        period: ApiBudgetPeriod.MONTHLY,
+        periodKey: "2026-08",
       }),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it("rejects a period key that does not match the budget period", async () => {
+    const { service } = createService();
+
+    await expect(
+      service.create("user-1", {
+        category: ApiExpenseCategory.GROCERIES,
+        limitAmountMinor: 35000,
+        currency: ApiCurrencyCode.EUR,
+        period: ApiBudgetPeriod.DAILY,
+        periodKey: "2026-08",
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("rejects an ISO week that does not exist in its week year", async () => {
+    const { service } = createService();
+
+    await expect(
+      service.create("user-1", {
+        category: ApiExpenseCategory.GROCERIES,
+        limitAmountMinor: 10000,
+        currency: ApiCurrencyCode.EUR,
+        period: ApiBudgetPeriod.WEEKLY,
+        periodKey: "2025-W53",
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it("throws not found instead of updating another user's budget", async () => {

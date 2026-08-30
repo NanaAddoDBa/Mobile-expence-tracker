@@ -44,6 +44,13 @@ export enum GoalStatus {
   ARCHIVED = "archived",
 }
 
+export enum BudgetPeriod {
+  DAILY = "daily",
+  WEEKLY = "weekly",
+  MONTHLY = "monthly",
+  ANNUAL = "annual",
+}
+
 export enum CurrencyCode {
   EUR = "EUR",
   GBP = "GBP",

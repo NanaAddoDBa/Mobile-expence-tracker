@@ -5,17 +5,26 @@ import {
 } from "@nestjs/common";
 import {
   Budget,
+  BudgetPeriod as PrismaBudgetPeriod,
   ExpenseCategory as PrismaExpenseCategory,
   Prisma,
 } from "@prisma/client";
+import { BudgetPeriod } from "../common/validation/enums.dto";
 import { PrismaService } from "../prisma/prisma.service";
 import {
   BudgetResponse,
+  fromPrismaBudgetPeriod,
   toBudgetCreateInput,
   toBudgetResponse,
   toBudgetUpdateInput,
   toPrismaBudgetCategory,
+  toPrismaBudgetPeriod,
 } from "./budget.mapper";
+import {
+  getCurrentBudgetPeriodKey,
+  inferBudgetPeriod,
+  validateBudgetPeriodKey,
+} from "./budget-period";
 import { CreateBudgetDto } from "./dto/create-budget.dto";
 import { ListBudgetsQueryDto } from "./dto/list-budgets-query.dto";
 import { UpdateBudgetDto } from "./dto/update-budget.dto";
@@ -30,7 +39,11 @@ export class BudgetsService {
   ): Promise<BudgetResponse[]> {
     const budgets = await this.prisma.budget.findMany({
       where: this.createListWhere(userId, query),
-      orderBy: [{ monthKey: "desc" }, { category: "asc" }],
+      orderBy: [
+        { periodKey: "desc" },
+        { period: "asc" },
+        { category: "asc" },
+      ],
     });
 
     return budgets.map(toBudgetResponse);
@@ -40,12 +53,21 @@ export class BudgetsService {
     userId: string,
     input: CreateBudgetDto,
   ): Promise<BudgetResponse> {
-    const monthKey = input.monthKey ?? getCurrentMonthKey();
+    const period = input.period ?? BudgetPeriod.MONTHLY;
+    const periodKey = input.periodKey ?? getCurrentBudgetPeriodKey(period);
+    validateBudgetPeriodKey(period, periodKey);
+
     const category = toPrismaBudgetCategory(input.category);
-    await this.ensureNoDuplicateBudget(userId, category, monthKey);
+    const prismaPeriod = toPrismaBudgetPeriod(period);
+    await this.ensureNoDuplicateBudget(
+      userId,
+      category,
+      prismaPeriod,
+      periodKey,
+    );
 
     const budget = await this.prisma.budget.create({
-      data: toBudgetCreateInput(userId, input, monthKey),
+      data: toBudgetCreateInput(userId, input, period, periodKey),
     });
 
     return toBudgetResponse(budget);
@@ -72,15 +94,33 @@ export class BudgetsService {
     const category = input.category
       ? toPrismaBudgetCategory(input.category)
       : existingBudget.category;
-    const monthKey = input.monthKey ?? existingBudget.monthKey;
+    const existingPeriod = fromPrismaBudgetPeriod(existingBudget.period);
+    const period = input.period ?? existingPeriod;
+    const periodKey = input.periodKey ?? (
+      period === existingPeriod
+        ? existingBudget.periodKey
+        : getCurrentBudgetPeriodKey(period)
+    );
+    validateBudgetPeriodKey(period, periodKey);
+    const prismaPeriod = toPrismaBudgetPeriod(period);
 
-    if (category !== existingBudget.category || monthKey !== existingBudget.monthKey) {
-      await this.ensureNoDuplicateBudget(userId, category, monthKey, id);
+    if (
+      category !== existingBudget.category ||
+      prismaPeriod !== existingBudget.period ||
+      periodKey !== existingBudget.periodKey
+    ) {
+      await this.ensureNoDuplicateBudget(
+        userId,
+        category,
+        prismaPeriod,
+        periodKey,
+        id,
+      );
     }
 
     const budget = await this.prisma.budget.update({
       where: { id },
-      data: toBudgetUpdateInput(input),
+      data: toBudgetUpdateInput(input, period, periodKey),
     });
 
     return toBudgetResponse(budget);
@@ -111,17 +151,18 @@ export class BudgetsService {
   private async ensureNoDuplicateBudget(
     userId: string,
     category: PrismaExpenseCategory,
-    monthKey: string,
+    period: PrismaBudgetPeriod,
+    periodKey: string,
     exceptId?: string,
   ): Promise<void> {
     const existingBudget = await this.prisma.budget.findFirst({
-      where: { userId, category, monthKey },
+      where: { userId, category, period, periodKey },
       select: { id: true },
     });
 
     if (existingBudget && existingBudget.id !== exceptId) {
       throw new ConflictException(
-        "Budget already exists for this category and month",
+        "Budget already exists for this category and period",
       );
     }
   }
@@ -130,14 +171,18 @@ export class BudgetsService {
     userId: string,
     query: ListBudgetsQueryDto,
   ): Prisma.BudgetWhereInput {
+    const period = query.period ?? (
+      query.periodKey ? inferBudgetPeriod(query.periodKey) : undefined
+    );
+
+    if (period && query.periodKey) {
+      validateBudgetPeriodKey(period, query.periodKey);
+    }
+
     return {
       userId,
-      ...(query.monthKey ? { monthKey: query.monthKey } : {}),
+      ...(period ? { period: toPrismaBudgetPeriod(period) } : {}),
+      ...(query.periodKey ? { periodKey: query.periodKey } : {}),
     };
   }
-}
-
-function getCurrentMonthKey(referenceDate = new Date()): string {
-  const month = String(referenceDate.getUTCMonth() + 1).padStart(2, "0");
-  return `${referenceDate.getUTCFullYear()}-${month}`;
 }
