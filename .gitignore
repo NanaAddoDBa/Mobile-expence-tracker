@@ -11,3 +11,4 @@ dev-server.*.log
 .env.local
 .env.*
 !.env.example
+!.env.production.example

@@ -21,7 +21,10 @@
 		"db:format": "npm --prefix server run prisma:format",
 		"db:validate": "npm --prefix server run prisma:validate",
 		"db:migrate:dev": "npm --prefix server run prisma:migrate:dev",
-		"db:studio": "npm --prefix server run prisma:studio"
+		"db:migrate:deploy": "npm --prefix server run prisma:migrate:deploy",
+		"db:studio": "npm --prefix server run prisma:studio",
+		"compose:up": "docker compose -f compose.local.yaml up --build",
+		"compose:down": "docker compose -f compose.local.yaml down"
 	},
 	"dependencies": {
 		"d3": "^7.9.0",

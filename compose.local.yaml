@@ -1,0 +1,66 @@
+name: expense-tracker
+
+services:
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: expense_tracker
+      POSTGRES_USER: expense_tracker
+      POSTGRES_PASSWORD: local-development-password
+    ports:
+      - "5434:5432"
+    volumes:
+      - expense-tracker-database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U expense_tracker -d expense_tracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DATABASE_URL: postgresql://expense_tracker:local-development-password@database:5432/expense_tracker?schema=public
+      FRONTEND_ORIGIN: http://localhost:3000
+      APP_PUBLIC_URL: http://localhost:3000
+      PUBLIC_API_URL: http://localhost:4000
+      COOKIE_SECURE: "false"
+      TRUST_PROXY: "1"
+      CSRF_SECRET: local-compose-csrf-secret-at-least-32-characters
+      BCRYPT_ROUNDS: 10
+      BANK_CONNECTIONS_ENABLED: "${BANK_CONNECTIONS_ENABLED:-false}"
+      BANK_SYNC_ENABLED: "${BANK_SYNC_ENABLED:-false}"
+      GOCARDLESS_SECRET_ID: "${GOCARDLESS_SECRET_ID:-}"
+      GOCARDLESS_SECRET_KEY: "${GOCARDLESS_SECRET_KEY:-}"
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
+    ports:
+      - "4000:4000"
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_MODE: http
+        VITE_API_BASE_URL: ""
+        VITE_GOOGLE_CLIENT_ID: "${VITE_GOOGLE_CLIENT_ID:-}"
+    environment:
+      API_UPSTREAM: http://api:4000
+    ports:
+      - "3000:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  expense-tracker-database:

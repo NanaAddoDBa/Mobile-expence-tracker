@@ -1,0 +1,16 @@
+.git
+.github
+.agents
+node_modules
+server/node_modules
+dist
+server/dist
+coverage
+server/coverage
+*.log
+.env
+.env.*
+server/.env
+server/.env.*
+!.env.example
+!server/.env.example
