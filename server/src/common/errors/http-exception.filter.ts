@@ -4,6 +4,7 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from "@nestjs/common";
 import { Request, Response } from "express";
 import { ApiErrorCode } from "./api-error-code";
@@ -39,6 +40,10 @@ function getErrorCode(status: number): ApiErrorCode {
 }
 
 function getRequestId(request: RequestWithContext): string | undefined {
+  if (request.requestId) {
+    return request.requestId;
+  }
+
   const headerValue = request.headers["x-request-id"];
 
   if (typeof headerValue === "string" && headerValue.trim()) {
@@ -75,18 +80,38 @@ function getExceptionMessage(
   };
 }
 
-@Catch(HttpException)
-export class HttpExceptionFilter implements ExceptionFilter<HttpException> {
-  catch(exception: HttpException, host: ArgumentsHost): void {
+@Catch()
+export class HttpExceptionFilter implements ExceptionFilter<unknown> {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
+
+  catch(exception: unknown, host: ArgumentsHost): void {
     const http = host.switchToHttp();
     const request = http.getRequest<RequestWithContext>();
     const response = http.getResponse<Response>();
-    const status = exception.getStatus();
-    const exceptionResponse = exception.getResponse() as
-      | string
-      | HttpExceptionBody;
-    const errorDetails = getExceptionMessage(exception, exceptionResponse);
+    const status =
+      exception instanceof HttpException
+        ? exception.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
+    const errorDetails =
+      exception instanceof HttpException
+        ? getExceptionMessage(
+            exception,
+            exception.getResponse() as string | HttpExceptionBody,
+          )
+        : { message: "Internal server error" };
     const requestId = getRequestId(request);
+
+    if (!(exception instanceof HttpException)) {
+      this.logger.error(
+        JSON.stringify({
+          event: "unhandled_http_error",
+          requestId,
+          method: request.method,
+          path: request.originalUrl.split("?")[0],
+        }),
+        exception instanceof Error ? exception.stack : undefined,
+      );
+    }
 
     const body: ApiErrorResponse = {
       error: {

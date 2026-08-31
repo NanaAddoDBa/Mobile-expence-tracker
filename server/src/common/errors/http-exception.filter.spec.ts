@@ -17,6 +17,11 @@ class FilterTestController {
       message: ["page must not be less than 1"],
     });
   }
+
+  @Get("unexpected")
+  failUnexpectedly(): never {
+    throw new Error("sensitive internal failure");
+  }
 }
 
 describe("HttpExceptionFilter", () => {
@@ -55,5 +60,24 @@ describe("HttpExceptionFilter", () => {
       "Invalid Date",
     );
     expect(response.body.error).not.toHaveProperty("stack");
+  });
+
+  it("returns a generic request-correlated response for unexpected errors", async () => {
+    const response = await request(app.getHttpServer())
+      .get("/filter-test/unexpected")
+      .set("x-request-id", "request-500")
+      .expect(500);
+
+    expect(response.body).toEqual({
+      error: {
+        code: ApiErrorCode.INTERNAL_ERROR,
+        message: "Internal server error",
+        requestId: "request-500",
+        timestamp: expect.any(String),
+      },
+    });
+    expect(JSON.stringify(response.body)).not.toContain(
+      "sensitive internal failure",
+    );
   });
 });
