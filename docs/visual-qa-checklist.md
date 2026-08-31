@@ -57,8 +57,10 @@ Use this checklist before shipping visual/UI changes.
 - Retry or recovery actions are clear when available.
 
 ## Connected account flow
-- Consent, provider selection, mock auth, account selection, and success states are clear.
-- Read-only and mock-only language is visible.
+- Institution selection, consent, provider redirect, callback, and
+  success/error states are clear.
+- Read-only language is visible for connected accounts, and mock-only language
+  is visible specifically for receipt scanning.
 - Import, reconnect, remove, and details actions are easy to find.
 
 ## Receipt scanning flow
