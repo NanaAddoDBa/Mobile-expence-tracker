@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import {
+  AuthProvider,
   Prisma,
   Session,
   User,
@@ -23,8 +24,10 @@ import {
 import {
   AuthRequestContext,
   AuthSessionResult,
+  GoogleAuthSessionResult,
   SafeUserResponse,
   ValidatedSession,
+  VerifiedGoogleIdentity,
   toRequestUser,
   toSafeUser,
 } from "./auth.types";
@@ -133,25 +136,84 @@ export class AuthService {
       throw new UnauthorizedException("Invalid email or password");
     }
 
-    if (user.status === UserStatus.DISABLED) {
-      throw new ForbiddenException("This account is disabled");
+    return this.createAuthenticatedSession(user, context, "AUTH_LOGIN");
+  }
+
+  async authenticateWithGoogle(
+    identity: VerifiedGoogleIdentity,
+    context: AuthRequestContext,
+  ): Promise<GoogleAuthSessionResult> {
+    const linkedIdentity = await this.prisma.authIdentity.findUnique({
+      where: {
+        provider_providerSubject: {
+          provider: AuthProvider.GOOGLE,
+          providerSubject: identity.subject,
+        },
+      },
+    });
+
+    if (linkedIdentity) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: linkedIdentity.userId },
+      });
+
+      if (!user) {
+        throw new UnauthorizedException("Google account is not available");
+      }
+
+      return {
+        ...(await this.createAuthenticatedSession(
+          user,
+          context,
+          "AUTH_GOOGLE_LOGIN",
+        )),
+        isNewUser: false,
+      };
+    }
+
+    const email = this.normalizeEmail(identity.email);
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException(
+        "An account with this email already exists. Sign in using its existing method.",
+      );
     }
 
     const sessionToken = generateSessionToken();
     const tokenHash = hashSessionToken(sessionToken);
     const expiresAt = this.createSessionExpiry();
-    const lastLoginAt = new Date();
+    const now = new Date();
 
-    const updatedUser = await this.prisma.$transaction(
-      async (transaction) => {
-        const savedUser = await transaction.user.update({
-          where: { id: user.id },
-          data: { lastLoginAt },
+    try {
+      const user = await this.prisma.$transaction(async (transaction) => {
+        const createdUser = await transaction.user.create({
+          data: {
+            email,
+            name: identity.name,
+            passwordHash: null,
+            emailVerifiedAt: now,
+            lastLoginAt: now,
+            settings: {
+              create: {},
+            },
+          },
+        });
+
+        await transaction.authIdentity.create({
+          data: {
+            userId: createdUser.id,
+            provider: AuthProvider.GOOGLE,
+            providerSubject: identity.subject,
+            providerEmail: email,
+          },
         });
 
         await transaction.session.create({
           data: {
-            userId: user.id,
+            userId: createdUser.id,
             tokenHash,
             expiresAt,
             userAgent: context.userAgent,
@@ -159,17 +221,29 @@ export class AuthService {
           },
         });
 
-        return savedUser;
-      },
-    );
+        return createdUser;
+      });
 
-    await this.writeAudit("AUTH_LOGIN", context, updatedUser.id);
+      await this.writeAudit("AUTH_GOOGLE_REGISTER", context, user.id);
 
-    return {
-      user: toSafeUser(updatedUser),
-      sessionToken,
-      expiresAt,
-    };
+      return {
+        user: toSafeUser(user),
+        sessionToken,
+        expiresAt,
+        isNewUser: true,
+      };
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        throw new ConflictException(
+          "This Google account is already connected to an account",
+        );
+      }
+
+      throw error;
+    }
   }
 
   async logout(
@@ -271,6 +345,50 @@ export class AuthService {
       sameSite: "lax",
       secure: this.isCookieSecure(),
       path: "/",
+    };
+  }
+
+  private async createAuthenticatedSession(
+    user: User,
+    context: AuthRequestContext,
+    auditAction: string,
+  ): Promise<AuthSessionResult> {
+    if (user.status === UserStatus.DISABLED) {
+      throw new ForbiddenException("This account is disabled");
+    }
+
+    const sessionToken = generateSessionToken();
+    const tokenHash = hashSessionToken(sessionToken);
+    const expiresAt = this.createSessionExpiry();
+    const lastLoginAt = new Date();
+
+    const updatedUser = await this.prisma.$transaction(
+      async (transaction) => {
+        const savedUser = await transaction.user.update({
+          where: { id: user.id },
+          data: { lastLoginAt },
+        });
+
+        await transaction.session.create({
+          data: {
+            userId: user.id,
+            tokenHash,
+            expiresAt,
+            userAgent: context.userAgent,
+            ipAddress: context.ipAddress,
+          },
+        });
+
+        return savedUser;
+      },
+    );
+
+    await this.writeAudit(auditAction, context, updatedUser.id);
+
+    return {
+      user: toSafeUser(updatedUser),
+      sessionToken,
+      expiresAt,
     };
   }
 

@@ -1,18 +1,29 @@
 import {
   INestApplication,
+  UnauthorizedException,
   ValidationPipe,
 } from "@nestjs/common";
-import { Prisma, Session, User, UserStatus } from "@prisma/client";
+import {
+  AuthIdentity,
+  Prisma,
+  Session,
+  User,
+  UserStatus,
+} from "@prisma/client";
 import { Test, TestingModule } from "@nestjs/testing";
 import cookieParser from "cookie-parser";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 import { HttpExceptionFilter } from "../src/common/errors/http-exception.filter";
+import { CsrfService } from "../src/common/security/csrf.service";
 import { PrismaService } from "../src/prisma/prisma.service";
+import { GoogleIdentityService } from "../src/auth/google-identity.service";
+import { AccountRecoveryService } from "../src/auth/account-recovery.service";
 
 class InMemoryPrisma {
   private users: User[] = [];
   private sessions: Session[] = [];
+  private authIdentities: AuthIdentity[] = [];
   private sequence = 0;
 
   readonly user = {
@@ -132,6 +143,44 @@ class InMemoryPrisma {
     },
   };
 
+  readonly authIdentity = {
+    findUnique: async (
+      args: Prisma.AuthIdentityFindUniqueArgs,
+    ): Promise<AuthIdentity | null> => {
+      const identityKey = args.where.provider_providerSubject;
+
+      if (!identityKey) {
+        return null;
+      }
+
+      return (
+        this.authIdentities.find(
+          (identity) =>
+            identity.provider === identityKey.provider &&
+            identity.providerSubject === identityKey.providerSubject,
+        ) ?? null
+      );
+    },
+    create: async (
+      args: Prisma.AuthIdentityCreateArgs,
+    ): Promise<AuthIdentity> => {
+      const data = args.data as Prisma.AuthIdentityUncheckedCreateInput;
+      const now = new Date();
+      const identity: AuthIdentity = {
+        id: data.id || this.nextId("identity"),
+        userId: data.userId,
+        provider: data.provider,
+        providerSubject: data.providerSubject,
+        providerEmail: data.providerEmail ?? null,
+        createdAt: data.createdAt ? new Date(data.createdAt) : now,
+        updatedAt: data.updatedAt ? new Date(data.updatedAt) : now,
+      };
+
+      this.authIdentities.push(identity);
+      return identity;
+    },
+  };
+
   readonly auditLog = {
     create: async (args: Prisma.AuditLogCreateArgs) => ({
       id: this.nextId("audit"),
@@ -171,6 +220,29 @@ describe("Auth API (e2e)", () => {
     })
       .overrideProvider(PrismaService)
       .useValue(new InMemoryPrisma())
+      .overrideProvider(GoogleIdentityService)
+      .useValue({
+        verifyCredential: async (credential: string) => {
+          if (credential !== "valid-google-token") {
+            throw new UnauthorizedException(
+              "Google sign-in could not be verified",
+            );
+          }
+
+          return {
+            subject: "google-subject-1",
+            email: "google.user@example.com",
+            name: "Google User",
+          };
+        },
+      })
+      .overrideProvider(CsrfService)
+      .useValue({
+        generateToken: () => "test-csrf-token",
+        validateRequest: () => true,
+      })
+      .overrideProvider(AccountRecoveryService)
+      .useValue({ requestEmailVerification: async () => false })
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -236,6 +308,62 @@ describe("Auth API (e2e)", () => {
     expect(getSetCookies(response.headers["set-cookie"]).join(";")).toContain(
       "exp_tracker_session=",
     );
+  });
+
+  it("creates and reuses a Google-backed account", async () => {
+    const firstResponse = await request(app.getHttpServer())
+      .post("/api/auth/google")
+      .send({ credential: "valid-google-token" })
+      .expect(200);
+
+    expect(firstResponse.body.data).toMatchObject({
+      isNewUser: true,
+      user: {
+        email: "google.user@example.com",
+        name: "Google User",
+      },
+    });
+    expect(
+      getSetCookies(firstResponse.headers["set-cookie"]).join(";"),
+    ).toContain("exp_tracker_session=");
+
+    const secondResponse = await request(app.getHttpServer())
+      .post("/api/auth/google")
+      .send({ credential: "valid-google-token" })
+      .expect(200);
+
+    expect(secondResponse.body.data.isNewUser).toBe(false);
+    expect(secondResponse.body.data.user.id).toBe(
+      firstResponse.body.data.user.id,
+    );
+  });
+
+  it("rejects an invalid Google credential", async () => {
+    const response = await request(app.getHttpServer())
+      .post("/api/auth/google")
+      .send({ credential: "invalid-google-token" })
+      .expect(401);
+
+    expect(response.body.error).toMatchObject({
+      code: "UNAUTHORIZED",
+      message: "Google sign-in could not be verified",
+    });
+  });
+
+  it("does not silently link Google to a password account", async () => {
+    await request(app.getHttpServer())
+      .post("/api/auth/register")
+      .send({
+        email: "google.user@example.com",
+        password: "password123",
+        name: "Existing User",
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post("/api/auth/google")
+      .send({ credential: "valid-google-token" })
+      .expect(409);
   });
 
   it("returns the current user for a valid session cookie", async () => {

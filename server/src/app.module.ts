@@ -12,6 +12,8 @@ import { GoalsModule } from "./goals/goals.module";
 import { HealthModule } from "./health/health.module";
 import { IncomesModule } from "./incomes/incomes.module";
 import { PrismaModule } from "./prisma/prisma.module";
+import { SecurityModule } from "./common/security/security.module";
+import { ProfileModule } from "./profile/profile.module";
 
 @Module({
   imports: [
@@ -20,6 +22,7 @@ import { PrismaModule } from "./prisma/prisma.module";
       envFilePath: ".env",
     }),
     ScheduleModule.forRoot(),
+    SecurityModule,
     AuthModule,
     BudgetsModule,
     CashFlowModule,
@@ -29,6 +32,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     HealthModule,
     IncomesModule,
     PrismaModule,
+    ProfileModule,
   ],
   controllers: [AppController],
   providers: [AppService],

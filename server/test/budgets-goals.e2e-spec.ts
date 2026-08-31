@@ -17,7 +17,9 @@ import { Test, TestingModule } from "@nestjs/testing";
 import cookieParser from "cookie-parser";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
+import { AccountRecoveryService } from "../src/auth/account-recovery.service";
 import { HttpExceptionFilter } from "../src/common/errors/http-exception.filter";
+import { CsrfService } from "../src/common/security/csrf.service";
 import { PrismaService } from "../src/prisma/prisma.service";
 
 class InMemoryPrisma {
@@ -344,6 +346,13 @@ describe("Budgets and Goals API (e2e)", () => {
     })
       .overrideProvider(PrismaService)
       .useValue(new InMemoryPrisma())
+      .overrideProvider(CsrfService)
+      .useValue({
+        generateToken: () => "test-csrf-token",
+        validateRequest: () => true,
+      })
+      .overrideProvider(AccountRecoveryService)
+      .useValue({ requestEmailVerification: async () => false })
       .compile();
 
     app = moduleFixture.createNestApplication();
