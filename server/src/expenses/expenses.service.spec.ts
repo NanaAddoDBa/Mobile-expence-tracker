@@ -76,7 +76,7 @@ describe("ExpensesService", () => {
     });
     expect(prisma.expense.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { userId: "user-1" },
+        where: { userId: "user-1", currency: CurrencyCode.EUR },
       }),
     );
   });
