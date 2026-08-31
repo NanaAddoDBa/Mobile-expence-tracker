@@ -8,6 +8,7 @@ export const APP_LOCAL_STORAGE_KEYS = [
   "exp_budgets",
   "exp_goals",
   "exp_ledger",
+  "income_ledger",
   "exp_notifications",
   "exp_onboarded",
   "exp_theme",

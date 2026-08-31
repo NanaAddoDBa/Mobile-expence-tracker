@@ -59,20 +59,22 @@ describe("critical UI workflows", () => {
       </>
     );
 
-    expect(screen.getByRole("heading", { name: "Set up your expense tracker" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Set up your money tracker" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Add first expense/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Connect mock account/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Add first income/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Connect bank account/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Scan receipt/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Create budget/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Load sample data/i })).toBeInTheDocument();
     expect(
-      screen.getByText("This app uses mock data and mock services. It does not move money, connect to real banks, or control payments.")
+      screen.getByText("Bank access is read-only. The app tracks transactions but cannot move money or make payments.")
     ).toBeInTheDocument();
   });
 
   test.each([
     ["Add first expense", "expenses"],
-    ["Connect mock account", "profile"],
+    ["Add first income", "income"],
+    ["Connect bank account", "profile"],
     ["Scan receipt", "receipts"],
     ["Create budget", "budgets"],
   ])("dashboard setup action %s navigates to %s", async (label, expectedView) => {
@@ -104,7 +106,7 @@ describe("critical UI workflows", () => {
 
     await user.click(screen.getByRole("button", { name: /Load sample data/i }));
 
-    expect(await screen.findByRole("heading", { name: "Expense Overview" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Money Overview" })).toBeInTheDocument();
     expect(screen.getByText("Based on 3 expenses")).toBeInTheDocument();
     expect(screen.getByLabelText("navigation-state")).toHaveTextContent("active-view:dashboard");
   });

@@ -15,6 +15,7 @@ import { useDemoDataActions } from "./features/demo/hooks/useDemoDataActions";
 // Sub views mapping
 import { DashboardView } from "./features/dashboard/DashboardView";
 import { ExpenseLedgerView } from "./features/expenses/ExpenseLedgerView";
+import { IncomeLedgerView } from "./features/incomes/IncomeLedgerView";
 import { BudgetManagerView } from "./features/budgets/BudgetManagerView";
 import { SavingsGoalsView } from "./features/goals/SavingsGoalsView";
 import { ReceiptScannerView } from "./features/receipts/ReceiptScannerView";
@@ -71,6 +72,7 @@ function AppContent() {
     <DashboardLayout>
       {activeView === "dashboard" && <DashboardView />}
       {activeView === "expenses" && <ExpenseLedgerView />}
+      {activeView === "income" && <IncomeLedgerView />}
       {activeView === "budgets" && <BudgetManagerView />}
       {activeView === "goals" && <SavingsGoalsView />}
       {activeView === "receipts" && <ReceiptScannerView />}

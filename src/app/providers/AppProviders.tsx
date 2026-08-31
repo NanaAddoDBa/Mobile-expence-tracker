@@ -6,6 +6,7 @@ import { BudgetProvider } from "./BudgetProvider";
 import { ExpenseProvider } from "./ExpenseProvider";
 import { FeedbackProvider } from "./FeedbackProvider";
 import { GoalProvider } from "./GoalProvider";
+import { IncomeProvider } from "./IncomeProvider";
 import { MockAuthProvider } from "./MockAuthProvider";
 import { NotificationProvider } from "./NotificationProvider";
 
@@ -19,7 +20,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
               <BudgetProvider>
                 <GoalProvider>
                   <ExpenseProvider>
-                    <AccountConnectionProvider>{children}</AccountConnectionProvider>
+                    <IncomeProvider>
+                      <AccountConnectionProvider>{children}</AccountConnectionProvider>
+                    </IncomeProvider>
                   </ExpenseProvider>
                 </GoalProvider>
               </BudgetProvider>

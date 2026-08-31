@@ -69,9 +69,10 @@ describe("mobile navigation", () => {
 
     expect(within(bottomNav).getByRole("button", { name: "Overview" })).toBeTruthy();
     expect(within(bottomNav).getByRole("button", { name: "Expenses" })).toBeTruthy();
+    expect(within(bottomNav).getByRole("button", { name: "Income" })).toBeTruthy();
     expect(within(bottomNav).getByRole("button", { name: "Budgets" })).toBeTruthy();
-    expect(within(bottomNav).getByRole("button", { name: "Receipts" })).toBeTruthy();
     expect(within(bottomNav).getByRole("button", { name: "Profile" })).toBeTruthy();
     expect(within(bottomNav).queryByRole("button", { name: "Goals" })).toBeNull();
+    expect(within(bottomNav).queryByRole("button", { name: "Receipts" })).toBeNull();
   });
 });

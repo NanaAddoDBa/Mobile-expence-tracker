@@ -5,6 +5,7 @@ import {
   createSampleData,
   createSampleExpenses,
   createSampleGoals,
+  createSampleIncomes,
   mergeSampleRecords,
 } from "./sampleDataService";
 
@@ -54,6 +55,19 @@ describe("sampleDataService", () => {
     expect(accounts.every((account) => account.lastImportedAt === "2027-03-10T12:00:00.000Z")).toBe(true);
   });
 
+  test("creates current sample income entries", () => {
+    const incomes = createSampleIncomes(new Date(2027, 2, 10));
+
+    expect(incomes).toHaveLength(3);
+    expect(incomes.filter((income) => income.date.startsWith("2027-03"))).toHaveLength(2);
+    expect(incomes.filter((income) => income.date.startsWith("2027-02"))).toHaveLength(1);
+    expect(incomes[0]).toMatchObject({
+      source: "Example Employer",
+      category: "Salary",
+      amount: 3200,
+    });
+  });
+
   test("creates current sample goals with future target dates", () => {
     const goals = createSampleGoals(new Date(2027, 2, 10));
 
@@ -75,6 +89,7 @@ describe("sampleDataService", () => {
 
     expect(budgets).toHaveLength(10);
     expect(sampleData.expenses).toHaveLength(14);
+    expect(sampleData.incomes).toHaveLength(3);
     expect(sampleData.budgets).toHaveLength(10);
     expect(sampleData.goals).toHaveLength(3);
     expect(sampleData.accounts).toHaveLength(2);

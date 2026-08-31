@@ -5,13 +5,16 @@ import { ConnectedAccount } from "../../domain/accounts/account.types";
 import { Budget } from "../../domain/budgets/budget.types";
 import { CreateExpenseModel, Expense } from "../../domain/expenses/expense.types";
 import { Goal } from "../../domain/goals/goal.types";
+import { CreateIncomeModel, Income } from "../../domain/incomes/income.types";
 import { SystemNotification } from "../../domain/notifications/notification.types";
 import {
   accountApi,
   budgetApi,
+  cashFlowApi,
   demoApi,
   expenseApi,
   goalApi,
+  incomeApi,
   notificationApi,
   receiptApi,
 } from ".";
@@ -30,6 +33,24 @@ const expensePayload: CreateExpenseModel = {
 const replacementExpense: Expense = {
   ...expensePayload,
   id: "expense-replacement",
+  entrySource: "manual",
+};
+
+const incomePayload: CreateIncomeModel = {
+  source: "Example Employer",
+  description: "Monthly salary",
+  amount: 3000,
+  date: "2026-06-01",
+  category: "Salary",
+  accountSource: "manual",
+  paymentMethod: "bank_transfer",
+  isRecurring: true,
+  recurringFrequency: "monthly",
+};
+
+const replacementIncome: Income = {
+  ...incomePayload,
+  id: "income-replacement",
   entrySource: "manual",
 };
 
@@ -119,6 +140,56 @@ describe("mock API clients", () => {
     expect(await expenseApi.listExpenses()).toHaveLength(1);
   });
 
+  test("incomeApi delegates to mock income persistence", async () => {
+    expect(await incomeApi.listIncomes()).toEqual([]);
+
+    const created = await incomeApi.createIncome(incomePayload);
+    expect(created).toMatchObject(incomePayload);
+
+    const updated = await incomeApi.updateIncome(created.id, { amount: 3200 });
+    expect(updated[0]).toMatchObject({ id: created.id, amount: 3200 });
+
+    await incomeApi.replaceIncomes([replacementIncome]);
+    expect(await incomeApi.listIncomes()).toEqual([replacementIncome]);
+
+    expect(await incomeApi.deleteIncome(replacementIncome.id)).toEqual([]);
+  });
+
+  test("cashFlowApi calculates net cash flow and excludes transfers", async () => {
+    await incomeApi.replaceIncomes([
+      replacementIncome,
+      {
+        ...replacementIncome,
+        id: "income-transfer",
+        amount: 500,
+        category: "Transfers",
+      },
+    ]);
+    await expenseApi.replaceExpenses([
+      { ...replacementExpense, amount: 1200, date: "2026-06-10" },
+      {
+        ...replacementExpense,
+        id: "expense-transfer",
+        amount: 500,
+        date: "2026-06-10",
+        category: "Transfers",
+      },
+    ]);
+
+    await expect(
+      cashFlowApi.getSummary({ from: "2026-06-01", to: "2026-06-30" }),
+    ).resolves.toMatchObject({
+      inflow: 3000,
+      outflow: 1200,
+      netCashFlow: 1800,
+      transferIn: 500,
+      transferOut: 500,
+      savingsRatePercentage: 60,
+      incomeCount: 1,
+      expenseCount: 1,
+    });
+  });
+
   test("budgetApi delegates to mock budget persistence", async () => {
     const created = await budgetApi.createBudget(budgetPayload);
     expect(created).toMatchObject(budgetPayload);
@@ -191,6 +262,7 @@ describe("mock API clients", () => {
 
     const summary = await demoApi.loadStarterDemoData();
     expect(summary.expenses).toBeGreaterThan(0);
+    expect(summary.incomes).toBeGreaterThan(0);
     expect(summary.budgets).toBeGreaterThan(0);
     expect(summary.goals).toBeGreaterThan(0);
     expect(summary.accounts).toBeGreaterThan(0);

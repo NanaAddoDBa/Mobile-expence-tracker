@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState } from "react";
 
-export type ActiveView = "dashboard" | "expenses" | "budgets" | "goals" | "receipts" | "profile";
+export type ActiveView =
+  | "dashboard"
+  | "expenses"
+  | "income"
+  | "budgets"
+  | "goals"
+  | "receipts"
+  | "profile";
 export type ProfileTabIntent =
   | "accounts"
   | "profile"

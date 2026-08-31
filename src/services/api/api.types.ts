@@ -10,6 +10,12 @@ import {
   UpdateExpenseModel,
 } from "../../domain/expenses/expense.types";
 import { CreateGoalModel, Goal, UpdateGoalModel } from "../../domain/goals/goal.types";
+import { CashFlowQuery, CashFlowSummary } from "../../domain/cash-flow/cashFlow.types";
+import {
+  CreateIncomeModel,
+  Income,
+  UpdateIncomeModel,
+} from "../../domain/incomes/income.types";
 import { SystemNotification } from "../../domain/notifications/notification.types";
 import { UserProfile } from "../../domain/profile/profile.types";
 import { MockOcrResult } from "../../domain/receipts/receipt.types";
@@ -27,6 +33,18 @@ export interface ExpenseApi {
   updateExpense(id: string, updates: UpdateExpenseModel): Promise<Expense[]>;
   deleteExpense(id: string): Promise<Expense[]>;
   replaceExpenses(expenses: Expense[]): Promise<Expense[]>;
+}
+
+export interface IncomeApi {
+  listIncomes(): Promise<Income[]>;
+  createIncome(income: CreateIncomeModel): Promise<Income>;
+  updateIncome(id: string, updates: UpdateIncomeModel): Promise<Income[]>;
+  deleteIncome(id: string): Promise<Income[]>;
+  replaceIncomes(incomes: Income[]): Promise<Income[]>;
+}
+
+export interface CashFlowApi {
+  getSummary(query?: CashFlowQuery): Promise<CashFlowSummary>;
 }
 
 export interface BudgetApi {

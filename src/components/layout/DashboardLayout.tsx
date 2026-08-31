@@ -12,6 +12,7 @@ import {
   LogOut,
   Sliders,
   Check,
+  CircleDollarSign,
 } from "lucide-react";
 import { ActiveView, useAppNavigation } from "../../app/providers/AppNavigationProvider";
 import { useMockAuth } from "../../app/providers/MockAuthProvider";
@@ -44,6 +45,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   const menuItems = [
     { id: "dashboard", label: "Overview", icon: <LayoutDashboard className="w-5 h-5" /> },
     { id: "expenses", label: "Expenses", icon: <Receipt className="w-5 h-5" /> },
+    { id: "income", label: "Income", icon: <CircleDollarSign className="w-5 h-5" /> },
     { id: "budgets", label: "Budgets", icon: <Sliders className="w-5 h-5" /> },
     { id: "goals", label: "Goals", icon: <PiggyBank className="w-5 h-5" /> },
     { id: "receipts", label: "Receipts", icon: <ScanLine className="w-5 h-5" /> },
@@ -54,8 +56,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
     menuItems[0],
     menuItems[1],
     menuItems[2],
-    menuItems[4],
-    menuItems[5],
+    menuItems[3],
+    menuItems[6],
   ] as const;
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
