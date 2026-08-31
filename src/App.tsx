@@ -29,6 +29,7 @@ function AppContent() {
     completeOnboarding,
     login,
     signup,
+    authenticateWithGoogle,
   } = useMockAuth();
   const { activeView, setActiveView } = useAppNavigation();
   const { showSuccess } = useFeedback();
@@ -55,7 +56,13 @@ function AppContent() {
 
   // If user is not authenticated, load interactive credential access
   if (!isAuthenticated) {
-    return <AuthScreen onLogin={login} onSignup={signup} />;
+    return (
+      <AuthScreen
+        onLogin={login}
+        onSignup={signup}
+        onGoogleLogin={authenticateWithGoogle}
+      />
+    );
   }
 
   // If authenticated but sandbox onboarding disclosures have not been approved, display Onboarding

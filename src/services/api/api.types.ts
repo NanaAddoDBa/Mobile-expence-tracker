@@ -26,6 +26,20 @@ export type MockAuthState = {
   isOnboarded: boolean;
 };
 
+export interface GoogleAuthResult {
+  user: UserProfile;
+  isNewUser: boolean;
+}
+
+export interface AuthSession {
+  id: string;
+  userAgent: string | null;
+  ipAddress: string | null;
+  createdAt: string;
+  expiresAt: string;
+  current: boolean;
+}
+
 export interface ExpenseApi {
   listExpenses(): Promise<Expense[]>;
   createExpense(expense: CreateExpenseModel): Promise<Expense>;
@@ -105,6 +119,18 @@ export interface AuthApi {
   getCurrentUser(): Promise<UserProfile | null>;
   login(email: string, password: string, name?: string): Promise<UserProfile | null>;
   signup(email: string, name: string, password: string): Promise<UserProfile>;
+  authenticateWithGoogle(credential: string): Promise<GoogleAuthResult>;
+  updateProfile(profile: Partial<UserProfile>): Promise<UserProfile>;
+  exportAccountData(): Promise<Record<string, unknown>>;
+  deleteAccount(): Promise<void>;
+  requestPasswordReset(email: string): Promise<void>;
+  confirmPasswordReset(token: string, newPassword: string): Promise<void>;
+  requestEmailVerification(): Promise<boolean>;
+  confirmEmailVerification(token: string): Promise<void>;
+  listSessions(): Promise<AuthSession[]>;
+  revokeSession(sessionId: string): Promise<void>;
+  changePassword(currentPassword: string, newPassword: string): Promise<void>;
+  logoutAll(): Promise<void>;
   logout(): Promise<void>;
 }
 

@@ -10,8 +10,10 @@ export interface MockAuthContextType {
   completeOnboarding: () => void;
   login: (email: string, password: string, name?: string) => Promise<boolean>;
   signup: (email: string, name: string, password: string) => Promise<boolean>;
+  authenticateWithGoogle: (credential: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  updateProfile: (profile: Partial<UserProfile>) => void;
+  updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const MockAuthContext = createContext<MockAuthContextType | undefined>(undefined);
@@ -74,6 +76,25 @@ export const MockAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, []);
 
+  useEffect(() => {
+    if (!USES_HTTP_API || typeof window === "undefined") return;
+
+    const url = new URL(window.location.href);
+    const token = url.searchParams.get("emailVerificationToken");
+    if (!token) return;
+
+    void authApi
+      .confirmEmailVerification(token)
+      .then(() => authApi.getCurrentUser())
+      .then((user) => {
+        if (user) setCurrentUser(user);
+      })
+      .finally(() => {
+        url.searchParams.delete("emailVerificationToken");
+        window.history.replaceState({}, "", url);
+      });
+  }, []);
+
   const completeOnboarding = () => {
     setIsOnboarded(true);
   };
@@ -118,6 +139,26 @@ export const MockAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const authenticateWithGoogle = async (
+    credential: string
+  ): Promise<boolean> => {
+    if (!credential) return false;
+
+    try {
+      const result = await authApi.authenticateWithGoogle(credential);
+      setCurrentUser(result.user);
+      setIsAuthenticated(true);
+
+      if (result.isNewUser) {
+        setIsOnboarded(false);
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const logout = async () => {
     try {
       await authApi.logout();
@@ -132,22 +173,16 @@ export const MockAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const updateProfile = (profileData: Partial<UserProfile>) => {
-    setCurrentUser((prev) => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        ...profileData,
-        settings: {
-          ...prev.settings,
-          ...profileData.settings,
-        },
-        notifications: {
-          ...prev.notifications,
-          ...profileData.notifications,
-        },
-      } as UserProfile;
-    });
+  const updateProfile = async (profileData: Partial<UserProfile>) => {
+    const updatedProfile = await authApi.updateProfile(profileData);
+    setCurrentUser(updatedProfile);
+  };
+
+  const deleteAccount = async () => {
+    await authApi.deleteAccount();
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    setIsOnboarded(false);
   };
 
   return (
@@ -159,8 +194,10 @@ export const MockAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         completeOnboarding,
         login,
         signup,
+        authenticateWithGoogle,
         logout,
         updateProfile,
+        deleteAccount,
       }}
     >
       {children}

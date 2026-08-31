@@ -8,7 +8,8 @@ export type ProfileSettingsTab = ProfileTabIntent;
 interface UseProfileSettingsOptions {
   currentUser: UserProfile | null;
   accounts: ConnectedAccount[];
-  updateProfile: (profile: Partial<UserProfile>) => void;
+  updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
+  isServerBacked: boolean;
   triggerMockImport: (accountId: string) => Promise<void>;
   showInfo: (message: string) => void;
   showSuccess: (message: string) => void;
@@ -18,6 +19,7 @@ export function useProfileSettings({
   currentUser,
   accounts,
   updateProfile,
+  isServerBacked,
   triggerMockImport,
   showInfo,
   showSuccess,
@@ -27,13 +29,13 @@ export function useProfileSettings({
   const [tmpEmail, setTmpEmail] = useState(currentUser?.email || "demo@example.com");
   const [savingProfileSuccess, setSavingProfileSuccess] = useState(false);
 
-  const handleProfileSave = (event: React.FormEvent) => {
+  const handleProfileSave = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!tmpName.trim() || !tmpEmail.trim()) return;
 
-    updateProfile({
+    await updateProfile({
       name: tmpName.trim(),
-      email: tmpEmail.trim(),
+      ...(isServerBacked ? {} : { email: tmpEmail.trim() }),
     });
 
     setSavingProfileSuccess(true);

@@ -9,6 +9,7 @@ interface PersonalInfoPanelProps {
   name: string;
   email: string;
   savingProfileSuccess: boolean;
+  isServerBacked: boolean;
   onNameChange: (value: string) => void;
   onEmailChange: (value: string) => void;
   onProfileSave: (event: React.FormEvent) => void;
@@ -20,6 +21,7 @@ export const PersonalInfoPanel: React.FC<PersonalInfoPanelProps> = ({
   name,
   email,
   savingProfileSuccess,
+  isServerBacked,
   onNameChange,
   onEmailChange,
   onProfileSave,
@@ -45,7 +47,7 @@ export const PersonalInfoPanel: React.FC<PersonalInfoPanelProps> = ({
         </p>
         <div className="mt-3 flex gap-1.5 items-center justify-center">
           <Badge tone="success">Active</Badge>
-          <Badge tone="neutral">Mock Data</Badge>
+          <Badge tone="neutral">{isServerBacked ? "Server Data" : "Mock Data"}</Badge>
         </div>
       </div>
 
@@ -71,9 +73,15 @@ export const PersonalInfoPanel: React.FC<PersonalInfoPanelProps> = ({
             type="email"
             value={email}
             onChange={(event) => onEmailChange(event.target.value)}
+            disabled={isServerBacked}
             className="w-full text-xs font-semibold px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 rounded-xl text-slate-950 dark:text-white"
             required
           />
+          {isServerBacked && (
+            <p className="mt-1 text-[10px] text-slate-400">
+              Email changes require a separate verified account flow.
+            </p>
+          )}
         </div>
 
         <button

@@ -12,6 +12,7 @@ export interface UserProfile {
   id: string;
   name: string;
   email: string;
+  emailVerifiedAt?: string | null;
   avatarUrl?: string;
   settings: AppSettings;
   notifications: NotificationSettings;

@@ -11,12 +11,14 @@ export { notificationApi } from "./notificationApi";
 export { receiptApi } from "./receiptApi";
 export type {
   AccountApi,
+  AuthSession,
   AuthApi,
   BudgetApi,
   CashFlowApi,
   DemoApi,
   ExpenseApi,
   GoalApi,
+  GoogleAuthResult,
   MockAuthState,
   IncomeApi,
   NotificationApi,

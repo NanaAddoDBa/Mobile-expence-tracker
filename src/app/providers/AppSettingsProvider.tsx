@@ -47,7 +47,7 @@ export const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const handleSetThemeMode = (mode: ThemeMode) => {
     setThemeMode(mode);
     if (auth.currentUser) {
-      auth.updateProfile({
+      void auth.updateProfile({
         settings: {
           ...auth.currentUser.settings,
           theme: mode,
@@ -72,7 +72,7 @@ export const AppSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ c
   ) => {
     if (!auth.currentUser) return;
 
-    auth.updateProfile({
+    void auth.updateProfile({
       settings: {
         ...normalizedSettings,
         accessibility: {
