@@ -19,10 +19,16 @@ interface ConnectedAccountResponse {
   lastSyncAt: string | null;
   lastErrorCode: string | null;
   lastErrorMessage: string | null;
+  currentBalanceMinor: number | null;
+  availableBalanceMinor: number | null;
+  balanceUpdatedAt: string | null;
   importedExpenseCount: number;
+  importedIncomeCount: number;
   lastImportedCount: number;
   lastSkippedDuplicateCount: number;
   lastImportFailedCount: number;
+  lastPendingCount: number;
+  pendingTransactionCount: number;
   lastImportMessage: string | null;
   externalAccounts: Array<{
     id: string;
@@ -31,6 +37,9 @@ interface ConnectedAccountResponse {
     accountType: "checking" | "savings" | "credit_card" | "digital_wallet";
     currency: string;
     isSelected: boolean;
+    currentBalanceMinor: number | null;
+    availableBalanceMinor: number | null;
+    balanceUpdatedAt: string | null;
   }>;
 }
 
@@ -68,6 +77,9 @@ interface ImportConnectedAccountResponse {
     result: {
       importBatchId: string;
       importedCount: number;
+      importedExpenseCount: number;
+      importedIncomeCount: number;
+      pendingCount: number;
       skippedDuplicateCount: number;
       failedCount: number;
       message: string;
@@ -94,6 +106,10 @@ const mockAccountApi: AccountApi = {
 
   async importConnectedAccount() {
     throw new Error("Real bank import is unavailable in mock mode.");
+  },
+
+  async reconnectConnectedAccount() {
+    throw new Error("Real bank reconnection is unavailable in mock mode.");
   },
 
   async deleteConnectedAccount(accountId) {
@@ -143,6 +159,20 @@ const httpAccountApi: AccountApi = {
     return response.data.result;
   },
 
+  async reconnectConnectedAccount(accountId) {
+    const response = await requestJson<StartBankConnectionResponse>(
+      `/connected-accounts/${accountId}/reconnect`,
+      {
+        method: "POST",
+        body: JSON.stringify({}),
+      }
+    );
+    return {
+      linkUrl: response.data.linkUrl,
+      account: fromApiConnectedAccount(response.data.connection),
+    };
+  },
+
   async deleteConnectedAccount(accountId) {
     await requestJson<{ data: { success: true } }>(`/connected-accounts/${accountId}`, {
       method: "DELETE",
@@ -170,7 +200,12 @@ function fromApiConnectedAccount(account: ConnectedAccountResponse): ConnectedAc
     accountType: primaryExternalAccount?.accountType || account.accountType,
     type: primaryExternalAccount?.accountType || account.accountType,
     institutionName: account.institutionName || "GoCardless Bank Account Data",
-    balance: 0,
+    balance: (account.currentBalanceMinor ?? 0) / 100,
+    availableBalance:
+      account.availableBalanceMinor === null
+        ? undefined
+        : account.availableBalanceMinor / 100,
+    balanceUpdatedAt: account.balanceUpdatedAt || undefined,
     currency: account.currency,
     isConnected: account.status === "connected",
     status: account.status,
@@ -181,10 +216,13 @@ function fromApiConnectedAccount(account: ConnectedAccountResponse): ConnectedAc
     lastConnectionCheckAt: account.lastSyncAt || undefined,
     connectionError: account.lastErrorMessage || undefined,
     importedExpenseCount: account.importedExpenseCount,
+    importedIncomeCount: account.importedIncomeCount,
     lastImportMessage: account.lastImportMessage || undefined,
     lastImportedCount: account.lastImportedCount,
     lastSkippedDuplicateCount: account.lastSkippedDuplicateCount,
     lastImportFailedCount: account.lastImportFailedCount,
+    lastPendingCount: account.lastPendingCount,
+    pendingTransactionCount: account.pendingTransactionCount,
   };
 }
 

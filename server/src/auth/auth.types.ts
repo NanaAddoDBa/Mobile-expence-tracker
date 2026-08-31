@@ -48,5 +48,6 @@ export function toRequestUser(user: User): RequestUser {
     id: user.id,
     email: user.email,
     ...(user.name === null ? {} : { name: user.name }),
+    emailVerified: user.emailVerifiedAt !== null,
   };
 }

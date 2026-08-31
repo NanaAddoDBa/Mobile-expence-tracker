@@ -528,7 +528,7 @@ export const ConnectedAccountsPanel: React.FC<ConnectedAccountsPanelProps> = ({
           <h5 className="text-sm font-bold text-slate-900 dark:text-white">No accounts connected yet.</h5>
           <p className="text-xs text-slate-400 mt-1">
             {isRealApiMode
-              ? "Connect a read-only bank account to import real expenses."
+              ? "Connect a read-only bank account to sync real transactions."
               : "Connect a read-only mock account to import expenses."}
           </p>
           <button
@@ -554,10 +554,12 @@ export const ConnectedAccountsPanel: React.FC<ConnectedAccountsPanelProps> = ({
                   </div>
                   <div className="text-right">
                     <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">
-                      {isRealApiMode ? "Currency" : "Mock balance"}
+                      {isRealApiMode ? "Current balance" : "Mock balance"}
                     </span>
                     <span className="block text-xs font-extrabold text-slate-900 dark:text-white font-mono">
-                      {isRealApiMode ? account.currency : formatCurrency(account.balance)}
+                      {isRealApiMode && !account.balanceUpdatedAt
+                        ? "Awaiting sync"
+                        : formatCurrency(account.balance)}
                     </span>
                     <span className="inline-flex mt-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold uppercase">Read-only</span>
                   </div>
@@ -572,17 +574,17 @@ export const ConnectedAccountsPanel: React.FC<ConnectedAccountsPanelProps> = ({
 
                 <div className="rounded-xl bg-slate-50 p-3 text-[10px] leading-relaxed text-slate-500 dark:bg-slate-800/30 dark:text-slate-400">
                   <p className="font-semibold text-slate-600 dark:text-slate-300">
-                    {account.lastImportMessage || "No expenses imported yet."}
+                    {account.lastImportMessage || "No transactions synced yet."}
                   </p>
                   <p className="mt-1">
-                    Last result: {account.lastImportedCount || 0} imported, {account.lastSkippedDuplicateCount || 0} skipped, {account.lastImportFailedCount || 0} failed.
+                    Last result: {account.lastImportedCount || 0} booked, {account.lastPendingCount || 0} pending, {account.lastSkippedDuplicateCount || 0} skipped, {account.lastImportFailedCount || 0} failed.
                   </p>
                 </div>
 
                 {detailsAccount?.id === account.id && (
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/30 rounded-xl text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
                     {isRealApiMode
-                      ? "This connection is read-only. It can import transactions as expenses, but it cannot move money or change account balances."
+                      ? "This connection is read-only. It can sync booked expenses, income, pending transactions, and bank-reported balances, but it cannot move money."
                       : "This mock account is read-only. It can import sample expenses, but it cannot move money or change real account balances."}
                   </div>
                 )}
@@ -622,7 +624,7 @@ export const ConnectedAccountsPanel: React.FC<ConnectedAccountsPanelProps> = ({
                     onClick={() => void onImportMockExpenses(account.id)}
                     className="text-[10px] font-bold px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 disabled:opacity-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400"
                   >
-                    {status === "importing" ? "Importing" : "Import expenses"}
+                    {status === "importing" ? "Syncing" : "Sync transactions"}
                   </button>
                   <button
                     onClick={() => {

@@ -12,6 +12,7 @@ import { USES_HTTP_API } from "../../services/api/apiMode";
 import { createAppError } from "../../lib/error/appError";
 import { logger } from "../../lib/logger";
 import { useExpenses } from "./ExpenseProvider";
+import { useIncomes } from "./IncomeProvider";
 import { useMockAuth } from "./MockAuthProvider";
 import { useNotifications } from "./NotificationProvider";
 
@@ -31,6 +32,7 @@ const AccountConnectionContext = createContext<AccountConnectionContextType | un
 export const AccountConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([]);
   const { expenses, addImportedExpenses, reloadExpenses } = useExpenses();
+  const { reloadIncomes } = useIncomes();
   const { addNotification } = useNotifications();
   const { currentUser, isAuthenticated } = useMockAuth();
 
@@ -113,7 +115,7 @@ export const AccountConnectionProvider: React.FC<{ children: React.ReactNode }> 
       },
       async reconnectAccount(accountId) {
         if (USES_HTTP_API) {
-          const result = await accountApi.startBankConnection();
+          const result = await accountApi.reconnectConnectedAccount(accountId);
           window.location.assign(result.linkUrl);
           return;
         }
@@ -160,7 +162,7 @@ export const AccountConnectionProvider: React.FC<{ children: React.ReactNode }> 
             );
             setAccounts(importingAccounts);
             const result = await accountApi.importConnectedAccount(accountId);
-            await reloadExpenses();
+            await Promise.all([reloadExpenses(), reloadIncomes()]);
             await reloadAccounts();
             addNotification(
               createNotification(
@@ -241,6 +243,7 @@ export const AccountConnectionProvider: React.FC<{ children: React.ReactNode }> 
     addNotification,
     reloadAccounts,
     reloadExpenses,
+    reloadIncomes,
     updateAccounts,
   ]);
 

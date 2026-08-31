@@ -1,6 +1,8 @@
 import {
   CurrencyCode,
   ExpenseCategory,
+  IncomeCategory,
+  TransactionDirection,
 } from "@prisma/client";
 import { normalizeGoCardlessTransaction } from "./transaction-normalizer";
 
@@ -24,32 +26,54 @@ describe("transaction normalizer", () => {
       merchantName: "Aldi",
       description: "CARD Aldi groceries",
       amountMinor: 2475,
+      direction: TransactionDirection.OUTFLOW,
       currency: CurrencyCode.EUR,
       normalizedCategory: ExpenseCategory.GROCERIES,
+      normalizedIncomeCategory: null,
     });
   });
 
-  it("skips income and unsupported currency transactions", () => {
+  it("normalizes incoming transactions into income", () => {
+    const normalized = normalizeGoCardlessTransaction("account-1", {
+      transactionId: "income",
+      bookingDate: "2026-08-07",
+      debtorName: "Example Employer",
+      remittanceInformationUnstructured: "August payroll salary",
+      transactionAmount: {
+        currency: "EUR",
+        amount: "1200.00",
+      },
+    });
+
+    expect(normalized).toMatchObject({
+      merchantName: "Example Employer",
+      amountMinor: 120000,
+      direction: TransactionDirection.INFLOW,
+      normalizedCategory: null,
+      normalizedIncomeCategory: IncomeCategory.SALARY,
+    });
+  });
+
+  it("skips zero-value and non-EUR transactions", () => {
     expect(
       normalizeGoCardlessTransaction("account-1", {
-        transactionId: "income",
+        transactionId: "zero",
         bookingDate: "2026-08-07",
-        transactionAmount: {
-          currency: "EUR",
-          amount: "1200.00",
-        },
+        transactionAmount: { currency: "EUR", amount: "0" },
       }),
     ).toBeNull();
 
-    expect(
-      normalizeGoCardlessTransaction("account-1", {
-        transactionId: "unsupported-currency",
-        bookingDate: "2026-08-07",
-        transactionAmount: {
-          currency: "CHF",
-          amount: "-12.00",
-        },
-      }),
-    ).toBeNull();
+    for (const currency of ["GBP", "USD", "CHF"]) {
+      expect(
+        normalizeGoCardlessTransaction("account-1", {
+          transactionId: `unsupported-${currency}`,
+          bookingDate: "2026-08-07",
+          transactionAmount: {
+            currency,
+            amount: "-12.00",
+          },
+        }),
+      ).toBeNull();
+    }
   });
 });

@@ -187,7 +187,7 @@ describe("connected account workflow", () => {
     expect(screen.queryByText(/checking_account/)).toBeNull();
   });
 
-  test("import expenses action calls the provided import workflow", async () => {
+  test("sync transactions action calls the provided import workflow", async () => {
     const user = userEvent.setup();
     const onImportMockExpenses = vi.fn().mockResolvedValue(undefined);
 
@@ -204,7 +204,9 @@ describe("connected account workflow", () => {
       </FeedbackProvider>
     );
 
-    await user.click(screen.getByRole("button", { name: "Import expenses" }));
+    await user.click(
+      screen.getByRole("button", { name: "Sync transactions" })
+    );
 
     expect(onImportMockExpenses).toHaveBeenCalledWith("mock-bank-checking-4820");
   });

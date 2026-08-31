@@ -69,9 +69,15 @@ export interface AccountApi {
   startBankConnection(
     input?: StartBankConnectionInput
   ): Promise<{ linkUrl: string; account: ConnectedAccount }>;
+  reconnectConnectedAccount(
+    accountId: string
+  ): Promise<{ linkUrl: string; account: ConnectedAccount }>;
   importConnectedAccount(accountId: string): Promise<{
     importBatchId: string;
     importedCount: number;
+    importedExpenseCount: number;
+    importedIncomeCount: number;
+    pendingCount: number;
     skippedDuplicateCount: number;
     failedCount: number;
     message: string;
