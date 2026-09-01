@@ -2,8 +2,12 @@ import { Budget, BudgetStatusDetail } from "../../../domain/budgets/budget.types
 import { ConnectedAccount } from "../../../domain/accounts/account.types";
 import { Expense } from "../../../domain/expenses/expense.types";
 import { Goal } from "../../../domain/goals/goal.types";
+import { Income } from "../../../domain/incomes/income.types";
 import { Receipt } from "../../../domain/receipts/receipt.types";
-import { calculateBudgetUsage } from "../../../domain/budgets/budget.rules";
+import {
+  calculateBudgetUsage,
+  getBudgetsForPeriod,
+} from "../../../domain/budgets/budget.rules";
 import { getCurrentMonthKey, getTodayDateString, isSameMonth } from "../../../lib/dateUtils";
 import { ForecastedExpense, generateForecastedExpenses } from "../../../lib/recurringExpenseEngine";
 
@@ -34,6 +38,7 @@ export interface DashboardSummary {
 
 export type DashboardSetupGuidanceAction =
   | "add-expense"
+  | "add-income"
   | "create-budget"
   | "import-expenses";
 
@@ -47,6 +52,7 @@ export interface DashboardSetupGuidance {
 
 interface DashboardEmptyInput {
   expenses: Expense[];
+  incomes?: Income[];
   budgets: Budget[];
   goals: Goal[];
   receipts?: Receipt[];
@@ -55,6 +61,7 @@ interface DashboardEmptyInput {
 
 export function isDashboardEmpty({
   expenses,
+  incomes = [],
   budgets,
   goals,
   receipts = [],
@@ -62,6 +69,7 @@ export function isDashboardEmpty({
 }: DashboardEmptyInput): boolean {
   return (
     expenses.length === 0 &&
+    incomes.length === 0 &&
     budgets.length === 0 &&
     goals.length === 0 &&
     receipts.length === 0 &&
@@ -71,6 +79,7 @@ export function isDashboardEmpty({
 
 export function getDashboardSetupGuidance({
   expenses,
+  incomes = [],
   budgets,
   goals,
   receipts = [],
@@ -98,6 +107,26 @@ export function getDashboardSetupGuidance({
       description: "Budgets are planning limits you create for the expenses saved in this app.",
       actionLabel: "Create Budget",
       action: "create-budget",
+    });
+  }
+
+  if (expenses.length > 0 && incomes.length === 0) {
+    guidance.push({
+      id: "expenses-without-income",
+      title: "Add income to complete your cash-flow view",
+      description: "Income lets the overview calculate net cash flow and your savings rate.",
+      actionLabel: "Add Income",
+      action: "add-income",
+    });
+  }
+
+  if (incomes.length > 0 && expenses.length === 0) {
+    guidance.push({
+      id: "income-without-expenses",
+      title: "Income is ready, now add outflows",
+      description: "Add expenses to see how much of your income remains after spending.",
+      actionLabel: "Add Expense",
+      action: "add-expense",
     });
   }
 
@@ -219,8 +248,9 @@ export function getDashboardSummary(
   referenceDate = getTodayDateString()
 ): DashboardSummary {
   const currentMonthExpenses = getThisMonthExpenses(expenses, monthKey);
-  const budgetUsage = getBudgetUsageDetails(expenses, budgets, monthKey);
-  const totalBudgetLimit = getTotalBudgetLimit(budgets);
+  const currentMonthBudgets = getBudgetsForPeriod(budgets, "monthly", monthKey);
+  const budgetUsage = getBudgetUsageDetails(expenses, currentMonthBudgets, monthKey);
+  const totalBudgetLimit = getTotalBudgetLimit(currentMonthBudgets);
   const totalBudgetSpent = getTotalBudgetSpent(budgetUsage);
   const alerts = getOverspendingAlerts(budgetUsage);
 
@@ -231,7 +261,7 @@ export function getDashboardSummary(
     totalBudgetLimit,
     totalBudgetSpent,
     overallRemaining: roundMoney(Math.max(0, totalBudgetLimit - totalBudgetSpent)),
-    overallPercentage: getBudgetUsagePercentage(budgets, budgetUsage),
+    overallPercentage: getBudgetUsagePercentage(currentMonthBudgets, budgetUsage),
     categoryRanking: getTopSpendingCategories(budgetUsage),
     forecasts: getRecurringExpensesDueSoon(expenses, referenceDate),
     ...alerts,

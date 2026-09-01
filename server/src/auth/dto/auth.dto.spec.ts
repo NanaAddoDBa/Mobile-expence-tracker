@@ -2,6 +2,7 @@ import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 import { LoginDto } from "./login.dto";
 import { RegisterDto } from "./register.dto";
+import { GoogleAuthDto } from "./google-auth.dto";
 
 describe("auth DTOs", () => {
   it("accepts and normalizes valid registration values", async () => {
@@ -46,5 +47,18 @@ describe("auth DTOs", () => {
     expect(errors.map((error) => error.property)).toEqual(
       expect.arrayContaining(["email", "password"]),
     );
+  });
+
+  it("requires a non-empty Google credential", async () => {
+    const validDto = plainToInstance(GoogleAuthDto, {
+      credential: "signed-google-id-token",
+    });
+    const invalidDto = plainToInstance(GoogleAuthDto, {
+      credential: "",
+    });
+
+    await expect(validate(validDto)).resolves.toHaveLength(0);
+    const errors = await validate(invalidDto);
+    expect(errors.map((error) => error.property)).toContain("credential");
   });
 });

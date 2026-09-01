@@ -1,0 +1,41 @@
+import type { Income } from "../domain/incomes/income.types";
+
+export const INITIAL_INCOMES: Income[] = [
+  {
+    id: "income-1",
+    source: "Example Employer",
+    description: "Monthly salary",
+    amount: 3200,
+    date: "2026-06-01",
+    category: "Salary",
+    accountSource: "acct-1",
+    paymentMethod: "bank_transfer",
+    isRecurring: true,
+    recurringFrequency: "monthly",
+    entrySource: "manual",
+  },
+  {
+    id: "income-2",
+    source: "Design Client",
+    description: "Freelance project payment",
+    amount: 650,
+    date: "2026-06-02",
+    category: "Freelance",
+    accountSource: "acct-1",
+    paymentMethod: "bank_transfer",
+    isRecurring: false,
+    entrySource: "manual",
+  },
+  {
+    id: "income-3",
+    source: "Savings Account",
+    description: "Monthly interest",
+    amount: 18.75,
+    date: "2026-05-20",
+    category: "Investment",
+    accountSource: "acct-1",
+    paymentMethod: "bank_transfer",
+    isRecurring: false,
+    entrySource: "manual",
+  },
+];

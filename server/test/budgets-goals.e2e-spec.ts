@@ -4,6 +4,7 @@ import {
 } from "@nestjs/common";
 import {
   Budget,
+  BudgetPeriod,
   CurrencyCode,
   Goal,
   GoalStatus,
@@ -16,7 +17,9 @@ import { Test, TestingModule } from "@nestjs/testing";
 import cookieParser from "cookie-parser";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
+import { AccountRecoveryService } from "../src/auth/account-recovery.service";
 import { HttpExceptionFilter } from "../src/common/errors/http-exception.filter";
+import { CsrfService } from "../src/common/security/csrf.service";
 import { PrismaService } from "../src/prisma/prisma.service";
 
 class InMemoryPrisma {
@@ -150,7 +153,8 @@ class InMemoryPrisma {
         category: data.category,
         limitAmountMinor: data.limitAmountMinor,
         currency: data.currency ?? CurrencyCode.EUR,
-        monthKey: data.monthKey,
+        period: data.period ?? BudgetPeriod.MONTHLY,
+        periodKey: data.periodKey,
         createdAt: data.createdAt ? new Date(data.createdAt) : now,
         updatedAt: data.updatedAt ? new Date(data.updatedAt) : now,
       };
@@ -297,7 +301,11 @@ class InMemoryPrisma {
         return false;
       }
 
-      if (where?.monthKey && budget.monthKey !== where.monthKey) {
+      if (where?.period && budget.period !== where.period) {
+        return false;
+      }
+
+      if (where?.periodKey && budget.periodKey !== where.periodKey) {
         return false;
       }
 
@@ -338,6 +346,13 @@ describe("Budgets and Goals API (e2e)", () => {
     })
       .overrideProvider(PrismaService)
       .useValue(new InMemoryPrisma())
+      .overrideProvider(CsrfService)
+      .useValue({
+        generateToken: () => "test-csrf-token",
+        validateRequest: () => true,
+      })
+      .overrideProvider(AccountRecoveryService)
+      .useValue({ requestEmailVerification: async () => false })
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -378,7 +393,8 @@ describe("Budgets and Goals API (e2e)", () => {
         category: "travel",
         limitAmountMinor: 40000,
         currency: "EUR",
-        monthKey: "2026-08",
+        period: "monthly",
+        periodKey: "2026-08",
       })
       .expect(201);
 
@@ -386,8 +402,51 @@ describe("Budgets and Goals API (e2e)", () => {
     expect(createResponse.body.data.budget).toMatchObject({
       category: "travel",
       limitAmountMinor: 40000,
-      monthKey: "2026-08",
+      period: "monthly",
+      periodKey: "2026-08",
     });
+
+    const dailyResponse = await agent
+      .post("/api/budgets")
+      .send({
+        category: "travel",
+        limitAmountMinor: 2500,
+        currency: "EUR",
+        period: "daily",
+        periodKey: "2026-08-30",
+      })
+      .expect(201);
+    const dailyBudgetId = dailyResponse.body.data.budget.id as string;
+    expect(dailyResponse.body.data.budget).toMatchObject({
+      category: "travel",
+      limitAmountMinor: 2500,
+      period: "daily",
+      periodKey: "2026-08-30",
+    });
+
+    const weeklyResponse = await agent
+      .post("/api/budgets")
+      .send({
+        category: "travel",
+        limitAmountMinor: 12000,
+        currency: "EUR",
+        period: "weekly",
+        periodKey: "2026-W35",
+      })
+      .expect(201);
+    const weeklyBudgetId = weeklyResponse.body.data.budget.id as string;
+
+    const annualResponse = await agent
+      .post("/api/budgets")
+      .send({
+        category: "travel",
+        limitAmountMinor: 150000,
+        currency: "EUR",
+        period: "annual",
+        periodKey: "2026",
+      })
+      .expect(201);
+    const annualBudgetId = annualResponse.body.data.budget.id as string;
 
     const duplicateResponse = await agent
       .post("/api/budgets")
@@ -395,16 +454,32 @@ describe("Budgets and Goals API (e2e)", () => {
         category: "travel",
         limitAmountMinor: 45000,
         currency: "EUR",
-        monthKey: "2026-08",
+        period: "monthly",
+        periodKey: "2026-08",
       })
       .expect(409);
 
     expect(duplicateResponse.body.error.code).toBe("CONFLICT");
 
     const listResponse = await agent
-      .get("/api/budgets?monthKey=2026-08")
+      .get("/api/budgets?period=monthly&periodKey=2026-08")
       .expect(200);
     expect(listResponse.body.data.budgets).toHaveLength(1);
+
+    const dailyListResponse = await agent
+      .get("/api/budgets?period=daily&periodKey=2026-08-30")
+      .expect(200);
+    expect(dailyListResponse.body.data.budgets).toHaveLength(1);
+
+    const weeklyListResponse = await agent
+      .get("/api/budgets?period=weekly&periodKey=2026-W35")
+      .expect(200);
+    expect(weeklyListResponse.body.data.budgets).toHaveLength(1);
+
+    const annualListResponse = await agent
+      .get("/api/budgets?period=annual&periodKey=2026")
+      .expect(200);
+    expect(annualListResponse.body.data.budgets).toHaveLength(1);
 
     const updateResponse = await agent
       .patch(`/api/budgets/${budgetId}`)
@@ -415,9 +490,13 @@ describe("Budgets and Goals API (e2e)", () => {
     await agent.delete(`/api/budgets/${budgetId}`).expect(200);
 
     const emptyList = await agent
-      .get("/api/budgets?monthKey=2026-08")
+      .get("/api/budgets?period=monthly&periodKey=2026-08")
       .expect(200);
     expect(emptyList.body.data.budgets).toEqual([]);
+
+    await agent.delete(`/api/budgets/${dailyBudgetId}`).expect(200);
+    await agent.delete(`/api/budgets/${weeklyBudgetId}`).expect(200);
+    await agent.delete(`/api/budgets/${annualBudgetId}`).expect(200);
   });
 
   it("does not expose another user's budgets or goals", async () => {
@@ -432,7 +511,8 @@ describe("Budgets and Goals API (e2e)", () => {
         category: "groceries",
         limitAmountMinor: 35000,
         currency: "EUR",
-        monthKey: "2026-08",
+        period: "monthly",
+        periodKey: "2026-08",
       })
       .expect(201);
     const budgetId = budgetResponse.body.data.budget.id as string;

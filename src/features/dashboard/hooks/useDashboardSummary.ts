@@ -3,6 +3,7 @@ import { useBudgets } from "../../../app/providers/BudgetProvider";
 import { useConnectedAccounts } from "../../../app/providers/AccountConnectionProvider";
 import { useExpenses } from "../../../app/providers/ExpenseProvider";
 import { useGoals } from "../../../app/providers/GoalProvider";
+import { useIncomes } from "../../../app/providers/IncomeProvider";
 import { budgetRecommendationService } from "../../budgets/services/budgetRecommendationService";
 import { getCurrentMonthKey, getMonthLabel, getTodayDateString } from "../../../lib/dateUtils";
 import {
@@ -15,6 +16,7 @@ export function useDashboardSummary() {
   const { expenses } = useExpenses();
   const { budgets } = useBudgets();
   const { goals } = useGoals();
+  const { incomes } = useIncomes();
   const { accounts } = useConnectedAccounts();
 
   const currentYearMonth = getCurrentMonthKey();
@@ -31,12 +33,14 @@ export function useDashboardSummary() {
   const currentMonthLabelFull = getMonthLabel(currentYearMonth);
   const dashboardIsEmpty = isDashboardEmpty({
     expenses,
+    incomes,
     budgets,
     goals,
     connectedAccounts: accounts,
   });
   const setupGuidance = getDashboardSetupGuidance({
     expenses,
+    incomes,
     budgets,
     goals,
     connectedAccounts: accounts,

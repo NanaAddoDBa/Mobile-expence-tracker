@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import {
+  CurrencyCode as PrismaCurrencyCode,
   ExpenseCategory as PrismaExpenseCategory,
   Prisma,
 } from "@prisma/client";
@@ -118,7 +119,10 @@ export class ExpensesService {
     userId: string,
     query: ListExpensesQueryDto,
   ): Prisma.ExpenseWhereInput {
-    const where: Prisma.ExpenseWhereInput = { userId };
+    const where: Prisma.ExpenseWhereInput = {
+      userId,
+      currency: PrismaCurrencyCode.EUR,
+    };
 
     if (query.category) {
       where.category = this.mapCategory(query.category);

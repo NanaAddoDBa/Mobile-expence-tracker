@@ -2,7 +2,9 @@ import { createHash } from "crypto";
 import {
   CurrencyCode,
   ExpenseCategory,
+  IncomeCategory,
   PaymentMethod,
+  TransactionDirection,
 } from "@prisma/client";
 import { GoCardlessTransaction } from "./providers/gocardless-bank-data.client";
 
@@ -12,10 +14,12 @@ export interface NormalizedImportedTransaction {
   merchantName: string;
   description: string;
   amountMinor: number;
+  direction: TransactionDirection;
   currency: CurrencyCode;
   postedDate: Date;
   rawCategory: string | null;
-  normalizedCategory: ExpenseCategory;
+  normalizedCategory: ExpenseCategory | null;
+  normalizedIncomeCategory: IncomeCategory | null;
   dedupeHash: string;
   paymentMethod: PaymentMethod;
 }
@@ -26,7 +30,7 @@ export function normalizeGoCardlessTransaction(
 ): NormalizedImportedTransaction | null {
   const amount = Number(transaction.transactionAmount.amount);
 
-  if (!Number.isFinite(amount) || amount >= 0) {
+  if (!Number.isFinite(amount) || amount === 0) {
     return null;
   }
 
@@ -48,9 +52,12 @@ export function normalizeGoCardlessTransaction(
       transaction.bankTransactionCode ||
       "Imported transaction",
   );
+  const direction =
+    amount > 0 ? TransactionDirection.INFLOW : TransactionDirection.OUTFLOW;
   const merchantName = cleanText(
-    transaction.creditorName ||
-      transaction.debtorName ||
+    (direction === TransactionDirection.INFLOW
+      ? transaction.debtorName || transaction.creditorName
+      : transaction.creditorName || transaction.debtorName) ||
       inferMerchantFromDescription(description),
   );
   const amountMinor = Math.round(Math.abs(amount) * 100);
@@ -59,14 +66,15 @@ export function normalizeGoCardlessTransaction(
     createDedupeHash([
       providerAccountId,
       postedDate.toISOString().slice(0, 10),
+      direction,
       String(amountMinor),
       description,
     ]);
   const providerTransactionId = `gocardless:${providerAccountId}:${rawTransactionId}`;
   const dedupeHash = createDedupeHash([
-    providerTransactionId,
     providerAccountId,
     postedDate.toISOString().slice(0, 10),
+    direction,
     String(amountMinor),
     currency,
     merchantName,
@@ -79,10 +87,18 @@ export function normalizeGoCardlessTransaction(
     merchantName,
     description,
     amountMinor,
+    direction,
     currency,
     postedDate,
     rawCategory: transaction.bankTransactionCode ?? null,
-    normalizedCategory: categorizeTransaction(`${merchantName} ${description}`),
+    normalizedCategory:
+      direction === TransactionDirection.OUTFLOW
+        ? categorizeExpense(`${merchantName} ${description}`)
+        : null,
+    normalizedIncomeCategory:
+      direction === TransactionDirection.INFLOW
+        ? categorizeIncome(`${merchantName} ${description}`)
+        : null,
     dedupeHash,
     paymentMethod: PaymentMethod.BANK_TRANSFER,
   };
@@ -103,19 +119,7 @@ function parseDateOnly(value?: string): Date | null {
 function normalizeCurrency(value: string): CurrencyCode | null {
   const normalized = value.trim().toUpperCase();
 
-  if (normalized === CurrencyCode.EUR) {
-    return CurrencyCode.EUR;
-  }
-
-  if (normalized === CurrencyCode.GBP) {
-    return CurrencyCode.GBP;
-  }
-
-  if (normalized === CurrencyCode.USD) {
-    return CurrencyCode.USD;
-  }
-
-  return null;
+  return normalized === CurrencyCode.EUR ? CurrencyCode.EUR : null;
 }
 
 function cleanText(value: string): string {
@@ -131,7 +135,7 @@ function inferMerchantFromDescription(description: string): string {
     .slice(0, 120) || "Imported transaction";
 }
 
-function categorizeTransaction(value: string): ExpenseCategory {
+function categorizeExpense(value: string): ExpenseCategory {
   const text = value.toLowerCase();
 
   if (matchesAny(text, ["rent", "housing", "utility", "electric", "water", "internet"])) {
@@ -171,6 +175,48 @@ function categorizeTransaction(value: string): ExpenseCategory {
   }
 
   return ExpenseCategory.OTHER;
+}
+
+function categorizeIncome(value: string): IncomeCategory {
+  const text = value.toLowerCase();
+
+  if (matchesAny(text, ["salary", "payroll", "wage", "pay slip", "payslip"])) {
+    return IncomeCategory.SALARY;
+  }
+
+  if (matchesAny(text, ["freelance", "contractor", "consulting", "invoice payment"])) {
+    return IncomeCategory.FREELANCE;
+  }
+
+  if (matchesAny(text, ["business", "client payment", "customer payment"])) {
+    return IncomeCategory.BUSINESS;
+  }
+
+  if (matchesAny(text, ["interest", "dividend", "distribution", "investment"])) {
+    return IncomeCategory.INVESTMENT;
+  }
+
+  if (matchesAny(text, ["benefit", "pension", "allowance", "arbeitslosengeld"])) {
+    return IncomeCategory.BENEFITS;
+  }
+
+  if (matchesAny(text, ["refund", "cashback", "reversal"])) {
+    return IncomeCategory.REFUND;
+  }
+
+  if (matchesAny(text, ["reimbursement", "expense repayment"])) {
+    return IncomeCategory.REIMBURSEMENT;
+  }
+
+  if (matchesAny(text, ["gift", "birthday"])) {
+    return IncomeCategory.GIFT;
+  }
+
+  if (matchesAny(text, ["transfer", "internal", "own account"])) {
+    return IncomeCategory.TRANSFERS;
+  }
+
+  return IncomeCategory.OTHER;
 }
 
 function matchesAny(text: string, needles: string[]): boolean {

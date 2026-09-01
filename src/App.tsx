@@ -15,6 +15,7 @@ import { useDemoDataActions } from "./features/demo/hooks/useDemoDataActions";
 // Sub views mapping
 import { DashboardView } from "./features/dashboard/DashboardView";
 import { ExpenseLedgerView } from "./features/expenses/ExpenseLedgerView";
+import { IncomeLedgerView } from "./features/incomes/IncomeLedgerView";
 import { BudgetManagerView } from "./features/budgets/BudgetManagerView";
 import { SavingsGoalsView } from "./features/goals/SavingsGoalsView";
 import { ReceiptScannerView } from "./features/receipts/ReceiptScannerView";
@@ -28,6 +29,7 @@ function AppContent() {
     completeOnboarding,
     login,
     signup,
+    authenticateWithGoogle,
   } = useMockAuth();
   const { activeView, setActiveView } = useAppNavigation();
   const { showSuccess } = useFeedback();
@@ -54,7 +56,13 @@ function AppContent() {
 
   // If user is not authenticated, load interactive credential access
   if (!isAuthenticated) {
-    return <AuthScreen onLogin={login} onSignup={signup} />;
+    return (
+      <AuthScreen
+        onLogin={login}
+        onSignup={signup}
+        onGoogleLogin={authenticateWithGoogle}
+      />
+    );
   }
 
   // If authenticated but sandbox onboarding disclosures have not been approved, display Onboarding
@@ -71,6 +79,7 @@ function AppContent() {
     <DashboardLayout>
       {activeView === "dashboard" && <DashboardView />}
       {activeView === "expenses" && <ExpenseLedgerView />}
+      {activeView === "income" && <IncomeLedgerView />}
       {activeView === "budgets" && <BudgetManagerView />}
       {activeView === "goals" && <SavingsGoalsView />}
       {activeView === "receipts" && <ReceiptScannerView />}

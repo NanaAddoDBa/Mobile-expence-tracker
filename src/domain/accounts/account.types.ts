@@ -41,6 +41,8 @@ export interface ConnectedAccount {
   providerId?: string;
   lastFour?: string;
   balance: number;
+  availableBalance?: number;
+  balanceUpdatedAt?: string;
   currency: string;
   isConnected: boolean;
   status?: ConnectedAccountStatus;
@@ -52,10 +54,13 @@ export interface ConnectedAccount {
   selectedForImport?: boolean;
   connectionError?: string;
   importedExpenseCount?: number;
+  importedIncomeCount?: number;
   lastImportMessage?: string;
   lastImportedCount?: number;
   lastSkippedDuplicateCount?: number;
   lastImportFailedCount?: number;
+  pendingTransactionCount?: number;
+  lastPendingCount?: number;
 }
 
 export interface MockAccountProvider {

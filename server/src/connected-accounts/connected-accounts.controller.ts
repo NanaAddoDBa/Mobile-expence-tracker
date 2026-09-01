@@ -11,10 +11,13 @@ import {
   Res,
   UnauthorizedException,
   UseGuards,
+  Logger,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { Throttle } from "@nestjs/throttler";
 import { Response } from "express";
 import { AuthGuard } from "../auth/auth.guard";
+import { EmailVerifiedGuard } from "../auth/email-verified.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { IdParamDto } from "../common/dto/id-param.dto";
 import {
@@ -57,6 +60,8 @@ interface DeletePayload {
 @Controller("connected-accounts")
 @UseGuards(AuthGuard)
 export class ConnectedAccountsController {
+  private readonly logger = new Logger(ConnectedAccountsController.name);
+
   constructor(
     private readonly connectedAccountsService: ConnectedAccountsService,
     private readonly config: ConfigService,
@@ -85,6 +90,8 @@ export class ConnectedAccountsController {
   }
 
   @Post("link/start")
+  @UseGuards(EmailVerifiedGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async startBankConnection(
     @Req() request: AuthenticatedRequest,
     @Body() input: StartBankConnectionDto,
@@ -101,22 +108,35 @@ export class ConnectedAccountsController {
   }
 
   @Get("link/callback")
+  @UseGuards(EmailVerifiedGuard)
   async completeBankConnection(
     @Req() request: AuthenticatedRequest,
     @Query("connectionId") connectionId: string,
     @Res() response: Response,
   ): Promise<void> {
-    await this.connectedAccountsService.completeBankConnection(
-      this.getUserId(request),
-      connectionId,
-    );
-
     const frontendOrigin =
-      this.config.get<string>("FRONTEND_ORIGIN") || "http://localhost:5173";
-    response.redirect(`${frontendOrigin}/?bankConnection=completed`);
+      (this.config.get<string>("FRONTEND_ORIGIN") || "http://localhost:3000")
+        .split(",")[0]
+        .trim();
+    try {
+      await this.connectedAccountsService.completeBankConnection(
+        this.getUserId(request),
+        connectionId,
+      );
+      response.redirect(`${frontendOrigin}/?bankConnection=completed`);
+    } catch (error) {
+      this.logger.warn(
+        `Bank callback failed: ${
+          error instanceof Error ? error.message : "unknown provider error"
+        }`,
+      );
+      response.redirect(`${frontendOrigin}/?bankConnection=failed`);
+    }
   }
 
   @Post(":id/import")
+  @UseGuards(EmailVerifiedGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async importTransactions(
     @Req() request: AuthenticatedRequest,
     @Param() params: IdParamDto,
@@ -127,6 +147,22 @@ export class ConnectedAccountsController {
     );
 
     return createApiSuccess({ result });
+  }
+
+  @Post(":id/reconnect")
+  @UseGuards(EmailVerifiedGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async reconnect(
+    @Req() request: AuthenticatedRequest,
+    @Param() params: IdParamDto,
+    @Body() input: StartBankConnectionDto,
+  ): Promise<ApiSuccessResponse<BankConnectionStartPayload>> {
+    const result = await this.connectedAccountsService.reconnect(
+      this.getUserId(request),
+      params.id,
+      input.userLanguage,
+    );
+    return createApiSuccess(result);
   }
 
   @Get(":id")

@@ -27,6 +27,7 @@ describe("PrismaService", () => {
     expect(prisma).toBeDefined();
     expect(prisma.onModuleInit).toEqual(expect.any(Function));
     expect(prisma.onModuleDestroy).toEqual(expect.any(Function));
+    delete process.env.DATABASE_URL;
     await expect(prisma.onModuleInit()).resolves.toBeUndefined();
     await module.close();
   });

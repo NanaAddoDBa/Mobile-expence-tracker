@@ -10,6 +10,8 @@ import { useMockAuth } from "../../app/providers/MockAuthProvider";
 import { useNotifications } from "../../app/providers/NotificationProvider";
 import { Card } from "../../components/ui/Card";
 import { NotificationSettings } from "../../domain/profile/profile.types";
+import { authApi } from "../../services/api";
+import { USES_HTTP_API } from "../../services/api/apiMode";
 import {
   clearLocalAppData,
   downloadLocalAppDataExport,
@@ -31,6 +33,7 @@ export const ProfileSettingsView: React.FC = () => {
   const {
     currentUser,
     updateProfile,
+    deleteAccount,
     logout,
   } = useMockAuth();
   const {
@@ -60,6 +63,7 @@ export const ProfileSettingsView: React.FC = () => {
     currentUser,
     accounts,
     updateProfile,
+    isServerBacked: USES_HTTP_API,
     triggerMockImport,
     showInfo,
     showSuccess,
@@ -82,13 +86,13 @@ export const ProfileSettingsView: React.FC = () => {
   const updateNotificationSettings = (updates: Partial<NotificationSettings>) => {
     if (!currentUser) return;
 
-    updateProfile({
+    void updateProfile({
       notifications: {
         ...notificationSettings,
         ...updates,
       },
     });
-    showSuccess("Saved locally.");
+    showSuccess(USES_HTTP_API ? "Settings saved." : "Saved locally.");
   };
 
   const updateThemeMode = (mode: typeof themeMode) => {
@@ -101,9 +105,16 @@ export const ProfileSettingsView: React.FC = () => {
     showSuccess("Saved locally.");
   };
 
-  const exportLocalData = () => {
-    downloadLocalAppDataExport();
-    showSuccess("Local data export downloaded.");
+  const exportData = async () => {
+    if (!USES_HTTP_API) {
+      downloadLocalAppDataExport();
+      showSuccess("Local data export downloaded.");
+      return;
+    }
+
+    const exportPayload = await authApi.exportAccountData();
+    downloadJson(exportPayload, `expense-tracker-export-${new Date().toISOString().slice(0, 10)}.json`);
+    showSuccess("Account data export downloaded.");
   };
 
   const clearLocalData = async () => {
@@ -119,6 +130,27 @@ export const ProfileSettingsView: React.FC = () => {
     clearLocalAppData();
     showSuccess("Local data cleared. Reloading the app.");
     window.setTimeout(() => window.location.reload(), 500);
+  };
+
+  const deleteAccountData = async () => {
+    if (!USES_HTTP_API) {
+      await clearLocalData();
+      return;
+    }
+
+    const confirmed = await confirmAction({
+      title: "Permanently delete your account?",
+      description:
+        "This permanently removes your profile, expenses, income, budgets, goals, bank connections, imports, and settings. This cannot be undone.",
+      confirmLabel: "Delete account",
+      variant: "danger",
+    });
+
+    if (!confirmed) return;
+
+    await deleteAccount();
+    clearLocalAppData();
+    showSuccess("Account and server data deleted.");
   };
 
   const loadLocalSampleData = async () => {
@@ -168,6 +200,7 @@ export const ProfileSettingsView: React.FC = () => {
             name={settings.tmpName}
             email={settings.tmpEmail}
             savingProfileSuccess={settings.savingProfileSuccess}
+            isServerBacked={USES_HTTP_API}
             onNameChange={settings.setTmpName}
             onEmailChange={settings.setTmpEmail}
             onProfileSave={settings.handleProfileSave}
@@ -211,15 +244,21 @@ export const ProfileSettingsView: React.FC = () => {
 
           {settings.activeTab === "privacy" && (
             <PrivacySettingsPanel
-              onExportData={exportLocalData}
-              onClearLocalData={() => {
-                void clearLocalData();
+              isServerBacked={USES_HTTP_API}
+              onExportData={() => {
+                void exportData();
+              }}
+              onDeleteData={() => {
+                void deleteAccountData();
               }}
             />
           )}
 
           {settings.activeTab === "security" && (
-            <SecuritySettingsPanel />
+            <SecuritySettingsPanel
+              emailVerifiedAt={currentUser?.emailVerifiedAt}
+              onLogout={logout}
+            />
           )}
 
           {settings.activeTab === "demo" && (
@@ -254,3 +293,16 @@ export const ProfileSettingsView: React.FC = () => {
     </div>
   );
 };
+
+function downloadJson(payload: unknown, fileName: string): void {
+  const url = URL.createObjectURL(
+    new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    })
+  );
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}

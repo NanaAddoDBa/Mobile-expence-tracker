@@ -3,11 +3,13 @@ import { useBudgets } from "../../../app/providers/BudgetProvider";
 import { useConnectedAccounts } from "../../../app/providers/AccountConnectionProvider";
 import { useExpenses } from "../../../app/providers/ExpenseProvider";
 import { useGoals } from "../../../app/providers/GoalProvider";
+import { useIncomes } from "../../../app/providers/IncomeProvider";
 import { useNotifications } from "../../../app/providers/NotificationProvider";
 import { demoApi } from "../../../services/api";
 
 export interface DemoDataLoadResult {
   expenses: number;
+  incomes: number;
   budgets: number;
   goals: number;
   accounts: number;
@@ -15,6 +17,7 @@ export interface DemoDataLoadResult {
 
 export function useDemoDataActions() {
   const { reloadExpenses } = useExpenses();
+  const { reloadIncomes } = useIncomes();
   const { reloadBudgets } = useBudgets();
   const { reloadGoals } = useGoals();
   const { reloadAccounts } = useConnectedAccounts();
@@ -23,12 +26,13 @@ export function useDemoDataActions() {
   const refreshProductData = useCallback(async () => {
     await Promise.all([
       reloadExpenses(),
+      reloadIncomes(),
       reloadBudgets(),
       reloadGoals(),
       reloadAccounts(),
       reloadNotifications(),
     ]);
-  }, [reloadAccounts, reloadBudgets, reloadExpenses, reloadGoals, reloadNotifications]);
+  }, [reloadAccounts, reloadBudgets, reloadExpenses, reloadGoals, reloadIncomes, reloadNotifications]);
 
   const loadSampleData = useCallback(async (): Promise<DemoDataLoadResult> => {
     const result = await demoApi.loadStarterDemoData();

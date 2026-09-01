@@ -1,398 +1,155 @@
 # Backend Data Model
 
-Backend V1 uses PostgreSQL and Prisma. The model should preserve frontend domain concepts while introducing backend ownership, privacy, and money handling rules.
+The API persists data in PostgreSQL through Prisma. The current schema is in
+`server/prisma/schema.prisma`; this document records its ownership and money
+invariants rather than duplicating every column.
 
-## Global Rules
+## Global Invariants
 
-- Every user-owned row must include `userId`.
-- Every API query must be scoped by authenticated `userId`.
-- Backend money values use integer minor units, not floating-point calculations.
-- Store `currency` with every money field.
-- Expenses keep `entrySource` separate from `paymentMethod`.
-- Connected account metadata stays separate from manual expense data.
-- Receipt metadata stays separate from manual expense data.
-- Provider-specific fields stay in provider metadata and adapter layers.
+- Every user-owned financial row carries `userId` and every service query is
+  scoped by the authenticated user.
+- Client payloads never choose an owning `userId`.
+- Money is stored as integer minor units. The active ledger, budgets, goals,
+  cash-flow totals, and bank import path are EUR-only until an explicit FX
+  design is implemented.
+- User deletion cascades through owned rows. Provider requisitions are revoked
+  before the `User` row is deleted.
+- Provider transaction payloads remain server-side; browser clients receive
+  normalized account and import summaries.
+- Payment initiation, card control, and bank credential storage are outside the
+  product boundary.
 
-## User
+## Identity And Privacy
 
-Purpose: account identity and ownership root.
+### `User`
 
-Important fields:
+The ownership root. It stores normalized email, optional display name, optional
+password hash, email-verification state, account status, and login timestamps.
+Password hashes and provider credentials are never returned by profile or
+export responses.
 
-- `id`
-- `email`
-- `name`
-- `passwordHash` or external auth subject
-- `createdAt`
-- `updatedAt`
+### `AuthIdentity`
 
-Relationships:
+Maps a user to a stable Google subject. The provider subject is unique and an
+identity cannot be silently linked to a password account solely by matching an
+email address.
 
-- Has one `UserSettings`.
-- Has many `Expense`, `Budget`, `Goal`, and `AuditLog` rows.
+### `Session`
 
-Ownership model: `User.id` is the owner key for all user-owned records.
+Stores a hash of the opaque session token, optional user-agent/IP metadata,
+expiry, and revocation time. The raw session token exists only in the secure
+HTTP-only cookie and is not persisted.
 
-Privacy notes: do not expose password hashes or auth internals through API responses.
+### Recovery Tokens
 
-Future notes: may link to provider auth subject if using a trusted auth provider.
+`EmailVerificationToken` and `PasswordResetToken` store only token hashes,
+expiry, use state, and ownership. Tokens are single-use. Expired and old used
+records are removed by the daily retention job.
 
-## UserSettings
+### `UserSettings`
 
-Purpose: store user preferences.
+Stores base currency, theme, locale, budget/summary preferences, and
+accessibility preferences. These are server-backed per-user settings.
 
-Important fields:
+### `AuditLog`
 
-- `id`
-- `userId`
-- `theme`
-- `currency`
-- `language`
-- `accessibility`
-- `notifications`
-- `createdAt`
-- `updatedAt`
+Records sensitive account actions with optional entity, request IP, user-agent,
+and metadata. It must never contain passwords, session cookies, CSRF values,
+recovery tokens, provider secrets, or full bank payloads. The configured
+retention defaults to 365 days.
 
-Relationships:
+## Financial Ledger
 
-- Belongs to `User`.
+### `Expense`
 
-Ownership model: query by `userId`.
+Stores outflows with merchant, optional description, positive `amountMinor`,
+EUR currency, date, category, payment method, entry source, notes, recurrence
+metadata, and optional receipt/import/account links.
 
-Privacy notes: settings should not contain secrets or provider tokens.
+### `Income`
 
-Future notes: notification preferences may move into a dedicated table when delivery exists.
+Stores inflows with source, optional description, positive `amountMinor`, EUR
+currency, date, category, payment method, entry source, notes, recurrence
+metadata, and optional import/account links.
 
-## Expense
+Imported ledger rows identify their source transaction through
+`externalTransactionId`. The `(userId, externalTransactionId)` constraint stops
+one user's imported transaction from being materialized twice.
 
-Purpose: user-owned spending record.
+Transfers are persisted for ledger completeness but excluded from operating
+income, spending, net cash flow, and savings-rate calculations so movement
+between a user's own accounts does not inflate totals.
 
-Suggested fields:
+### `Budget`
 
-- `id`
-- `userId`
-- `merchant`
-- `description`
-- `amountMinor`
-- `currency`
-- `date`
-- `category`
-- `paymentMethod`
-- `entrySource`
-- `notes`
-- `receiptId`
-- `sourceAccountId`
-- `importBatchId`
-- `externalTransactionId`
-- `recurringTemplateId`
-- `createdAt`
-- `updatedAt`
+Stores a category limit, EUR currency, period (`DAILY`, `WEEKLY`, `MONTHLY`, or
+`ANNUAL`), and normalized `periodKey`. The composite uniqueness constraint
+allows one budget per user/category/period/window. Progress is calculated from
+the user's EUR expenses in that exact period.
 
-Relationships:
+### `Goal`
 
-- Belongs to `User`.
-- May link to a future `Receipt`.
-- May link to a future `ConnectedAccount`, `ExternalTransaction`, and `ImportBatch`.
+Stores a named EUR target, current saved amount, optional target date, and
+status. Goal progress is a planning record; changing it does not move money.
 
-Ownership model: all reads and writes scope by `userId`.
+### `Notification`
 
-Privacy notes: descriptions, merchant names, notes, and amounts are financial data.
+The schema can persist in-app notifications, but automated email, push, and
+in-app notification delivery are not implemented. User preference fields do
+not imply that a delivery worker exists.
 
-Future notes: imported expenses should preserve connected-account metadata without changing the manual expense model.
+## Read-Only Bank Import
 
-## Budget
+### `ConnectedAccount`
 
-Purpose: user-created spending limit for a category and month.
+Represents one provider requisition and its lifecycle. It stores the
+institution/agreement references, consent expiry, connection state, last/next
+sync timestamps, last error, and an expiring sync lease. Provider application
+credentials remain in server environment secrets.
 
-Suggested fields:
+### `ExternalAccount`
 
-- `id`
-- `userId`
-- `category`
-- `limitAmountMinor`
-- `currency`
-- `monthKey`
-- `createdAt`
-- `updatedAt`
+Maps a provider account into the internal connection. It stores the provider
+account ID, display metadata, selection state, EUR current/available balance,
+and the time of the balance snapshot.
 
-Relationships:
+### `ExternalTransaction`
 
-- Belongs to `User`.
+Stores the normalized source transaction with direction, booking status,
+amount, date, categories, provider metadata, and a stable deduplication hash.
+`PENDING` transactions are retained as source records but do not affect the
+ledger. A later `BOOKED` transaction promotes or replaces the pending source
+and creates one income or expense row.
 
-Ownership model: all reads and writes scope by `userId`.
+### `ImportBatch`
 
-Privacy notes: budgets reveal spending priorities and should be treated as financial planning data.
+Summarizes one import attempt: status, imported, duplicate, pending, and failed
+counts plus timestamps and a user-facing message.
 
-Future notes: V1 budgets are EUR-only. Avoid mixing non-EUR expenses into budget totals until FX support exists.
+### `AccountSyncRun`
 
-## Goal
+Records operational sync history independently from user-facing batches,
+including trigger outcome, request count, counts, and sanitized error details.
 
-Purpose: user-created savings planning record.
+### `ConsentRecord`
 
-Suggested fields:
+Records consent lifecycle state (`STARTED`, `GRANTED`, `EXPIRED`, `REVOKED`, or
+`ERROR`) and timestamps. Reconnect and disconnect create auditable lifecycle
+changes; disconnect and account deletion revoke the provider requisition.
 
-- `id`
-- `userId`
-- `name`
-- `targetAmountMinor`
-- `currentAmountMinor`
-- `currency`
-- `targetDate`
-- `createdAt`
-- `updatedAt`
+## Receipt Placeholders
 
-Relationships:
+`Receipt` and `ReceiptExtraction` exist as schema foundations. The current UI
+uses a mock review flow; the backend does not yet provide secure object storage,
+upload validation, malware scanning, or real OCR. These records must not be
+described as a production receipt-processing capability.
 
-- Belongs to `User`.
+## Deletion And Retention
 
-Ownership model: all reads and writes scope by `userId`.
-
-Privacy notes: goals may reveal personal financial plans.
-
-Future notes: goals do not move money. Manual savings updates are planning records only.
-
-## AuditLog
-
-Purpose: record sensitive account and data actions.
-
-Important fields:
-
-- `id`
-- `userId`
-- `eventType`
-- `occurredAt`
-- `metadata`
-- `ipHash` or safe request context if needed
-
-Relationships:
-
-- Belongs to `User`.
-
-Ownership model: user-visible audit logs scope by `userId`; admin access should be tightly controlled if added later.
-
-Privacy notes: metadata must not include secrets, raw tokens, passwords, or unnecessary financial detail.
-
-Future notes: audit retention should be documented before production.
-
-## Receipt Placeholder
-
-Purpose: future receipt image and scan record.
-
-Important fields:
-
-- `id`
-- `userId`
-- `fileUrl`
-- `fileName`
-- `mimeType`
-- `status`
-- `linkedExpenseId`
-- `createdAt`
-- `updatedAt`
-
-Relationships:
-
-- Belongs to `User`.
-- May link to `Expense`.
-
-Ownership model: scope by `userId`.
-
-Privacy notes: receipt images can contain personal and financial data.
-
-Future notes: Backend V1 does not implement real receipt upload or real OCR.
-
-## ConnectedAccount Placeholder
-
-Purpose: future read-only account connection metadata.
-
-Important fields:
-
-- `id`
-- `userId`
-- `provider`
-- `displayName`
-- `accountType`
-- `status`
-- `consentId`
-- `lastSyncAt`
-- `needsReconnect`
-- `createdAt`
-- `updatedAt`
-
-Relationships:
-
-- Belongs to `User`.
-- May have many `ExternalAccount`, `ExternalTransaction`, and `ImportBatch` rows.
-
-Ownership model: scope by `userId`.
-
-Privacy notes: do not store provider access tokens in this table unless encrypted token storage is explicitly designed.
-
-Future notes: Backend V1 should only keep this as future-ready design.
-
-## ExternalAccount Placeholder
-
-Purpose: future provider account metadata mapped into the internal model.
-
-Important fields:
-
-- `id`
-- `userId`
-- `connectedAccountId`
-- `providerAccountId`
-- `displayName`
-- `accountType`
-- `currency`
-- `maskedIdentifier`
-- `createdAt`
-- `updatedAt`
-
-Relationships:
-
-- Belongs to `User`.
-- Belongs to `ConnectedAccount`.
-
-Ownership model: scope by `userId`.
-
-Privacy notes: store only necessary display metadata.
-
-Future notes: real provider models stay behind provider adapters.
-
-## ExternalTransaction Placeholder
-
-Purpose: future imported provider transaction source record.
-
-Important fields:
-
-- `id`
-- `userId`
-- `connectedAccountId`
-- `providerAccountId`
-- `externalTransactionId`
-- `importBatchId`
-- `postedDate`
-- `merchantName`
-- `description`
-- `amountMinor`
-- `currency`
-- `rawCategory`
-- `normalizedCategory`
-- `dedupeHash`
-- `createdAt`
-
-Relationships:
-
-- Belongs to `User`.
-- Belongs to `ConnectedAccount`.
-- Belongs to `ImportBatch`.
-- May link to `Expense`.
-
-Ownership model: scope by `userId`.
-
-Privacy notes: provider transaction data is financial data.
-
-Future notes: deduplication should prefer provider transaction IDs when available.
-
-## ImportBatch Placeholder
-
-Purpose: future transaction import run summary.
-
-Important fields:
-
-- `id`
-- `userId`
-- `connectedAccountId`
-- `status`
-- `startedAt`
-- `finishedAt`
-- `newExpenseCount`
-- `duplicateCount`
-- `failedCount`
-- `providerMessage`
-
-Relationships:
-
-- Belongs to `User`.
-- Belongs to `ConnectedAccount`.
-- Has many `ExternalTransaction` rows.
-
-Ownership model: scope by `userId`.
-
-Privacy notes: import summaries should avoid raw provider payloads.
-
-Future notes: supports user-facing import result copy such as "Imported 12 new expenses."
-
-## ConsentRecord Placeholder
-
-Purpose: future Open Banking consent lifecycle record.
-
-Important fields:
-
-- `id`
-- `userId`
-- `provider`
-- `status`
-- `grantedAt`
-- `expiresAt`
-- `revokedAt`
-- `needsReconnect`
-- `metadata`
-
-Relationships:
-
-- Belongs to `User`.
-- May link to `ConnectedAccount`.
-
-Ownership model: scope by `userId`.
-
-Privacy notes: provider tokens must be encrypted separately and never exposed to the frontend.
-
-Future notes: consent expiry and reconnect states are required before real Open Banking.
-
-## NotificationPreference Placeholder
-
-Purpose: future notification preference persistence.
-
-Important fields:
-
-- `id`
-- `userId`
-- `budgetAlertsEnabled`
-- `budgetThreshold`
-- `recurringRemindersEnabled`
-- `weeklySummariesEnabled`
-- `createdAt`
-- `updatedAt`
-
-Relationships:
-
-- Belongs to `User`.
-
-Ownership model: scope by `userId`.
-
-Privacy notes: preferences should control actual notification creation.
-
-Future notes: can start inside `UserSettings` in Backend V1 and split later.
-
-## Notification Placeholder
-
-Purpose: future in-app notification record.
-
-Important fields:
-
-- `id`
-- `userId`
-- `type`
-- `message`
-- `isRead`
-- `createdAt`
-
-Relationships:
-
-- Belongs to `User`.
-
-Ownership model: scope by `userId`.
-
-Privacy notes: notification messages should not expose sensitive details unnecessarily.
-
-Future notes: delivery channels such as email and push come later.
+- `DELETE /api/profile` requires the literal confirmation `DELETE`.
+- Bank provider access is revoked before local account deletion.
+- Deleting the user cascades through user-owned primary records.
+- Expired/revoked sessions default to 30-day cleanup, used auth tokens to 7
+  days, and audit logs to 365 days.
+- Managed database backups may retain deleted rows until the configured backup
+  window expires; the production privacy notice must disclose that window.

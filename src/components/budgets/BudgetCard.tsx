@@ -51,7 +51,9 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
           <h4 className="text-xs font-bold text-slate-900 dark:text-white leading-none">
             {budgetDetail.category}
           </h4>
-          <span className="text-[10px] text-slate-400 mt-1 block">Monthly category budget</span>
+          <span className="text-[10px] text-slate-400 mt-1 block">
+            {budgetDetail.period.charAt(0).toUpperCase() + budgetDetail.period.slice(1)} category budget
+          </span>
         </div>
 
         <div className="flex gap-1.5 items-center select-none">

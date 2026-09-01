@@ -1,0 +1,2 @@
+ALTER TABLE "UserSettings"
+ADD COLUMN "language" TEXT NOT NULL DEFAULT 'en-IE';

@@ -6,6 +6,9 @@ import { DashboardHeader } from "./components/DashboardHeader";
 import { DashboardSetupGuidancePanel } from "./components/DashboardSetupGuidancePanel";
 import { DashboardSetupEmptyState } from "./components/DashboardSetupEmptyState";
 import { ExpenseSummaryCards } from "./components/ExpenseSummaryCards";
+import { CashFlowSummaryCards } from "../cash-flow/components/CashFlowSummaryCards";
+import { useCashFlowSummary } from "../cash-flow/hooks/useCashFlowSummary";
+import { getMonthDateRange } from "../../domain/cash-flow/cashFlow.types";
 import { OverspendingAlertsPanel } from "./components/OverspendingAlertsPanel";
 import { RecentExpensesPanel } from "./components/RecentExpensesPanel";
 import { RecurringExpensesPanel } from "./components/RecurringExpensesPanel";
@@ -19,13 +22,24 @@ export const DashboardView: React.FC = () => {
   const { showSuccess } = useFeedback();
   const { loadSampleData } = useDemoDataActions();
   const summary = useDashboardSummary();
+  const cashFlow = useCashFlowSummary(
+    getMonthDateRange(summary.currentYearMonth),
+  );
 
   const goToExpenses = () => setActiveView("expenses");
   const goToBudgets = () => setActiveView("budgets");
   const goToGoals = () => setActiveView("goals");
-  const handleGuidanceAction = (action: "add-expense" | "create-budget" | "import-expenses") => {
+  const goToIncome = () => setActiveView("income");
+  const handleGuidanceAction = (
+    action: "add-expense" | "add-income" | "create-budget" | "import-expenses",
+  ) => {
     if (action === "add-expense") {
       setActiveView("expenses");
+      return;
+    }
+
+    if (action === "add-income") {
+      setActiveView("income");
       return;
     }
 
@@ -65,6 +79,13 @@ export const DashboardView: React.FC = () => {
       <DashboardSetupGuidancePanel
         guidance={summary.setupGuidance}
         onAction={handleGuidanceAction}
+      />
+
+      <CashFlowSummaryCards
+        summary={cashFlow.summary}
+        isLoading={cashFlow.isLoading}
+        errorMessage={cashFlow.errorMessage}
+        onViewIncome={goToIncome}
       />
 
       <ExpenseSummaryCards

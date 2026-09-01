@@ -16,11 +16,13 @@ describe("demoDataService", () => {
 
     expect(result).toMatchObject({
       expenses: 14,
+      incomes: 3,
       budgets: 10,
       goals: 3,
       accounts: 2,
     });
     expect(JSON.parse(storage.getItem("exp_ledger") || "[]")).toHaveLength(14);
+    expect(JSON.parse(storage.getItem("income_ledger") || "[]")).toHaveLength(3);
     expect(JSON.parse(storage.getItem("exp_budgets") || "[]")).toHaveLength(10);
     expect(JSON.parse(storage.getItem("exp_goals") || "[]")).toHaveLength(3);
     expect(JSON.parse(storage.getItem("exp_accounts") || "[]")).toHaveLength(2);
@@ -35,6 +37,7 @@ describe("demoDataService", () => {
     const result = resetDemoData(storage);
 
     expect(result.expenses).toBe(14);
+    expect(result.incomes).toBe(3);
     expect(JSON.parse(storage.getItem("exp_ledger") || "[]")[0].id).toBe("exp-rec-1");
     expect(result.accounts).toBe(2);
     expect(JSON.parse(storage.getItem("exp_accounts") || "[]")).toHaveLength(2);

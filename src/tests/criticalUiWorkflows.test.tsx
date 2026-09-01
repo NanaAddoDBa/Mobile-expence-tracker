@@ -59,20 +59,22 @@ describe("critical UI workflows", () => {
       </>
     );
 
-    expect(screen.getByRole("heading", { name: "Set up your expense tracker" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Set up your money tracker" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Add first expense/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Connect mock account/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Add first income/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Connect bank account/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Scan receipt/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Create budget/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Load sample data/i })).toBeInTheDocument();
     expect(
-      screen.getByText("This app uses mock data and mock services. It does not move money, connect to real banks, or control payments.")
+      screen.getByText("Bank access is read-only. The app tracks transactions but cannot move money or make payments.")
     ).toBeInTheDocument();
   });
 
   test.each([
     ["Add first expense", "expenses"],
-    ["Connect mock account", "profile"],
+    ["Add first income", "income"],
+    ["Connect bank account", "profile"],
     ["Scan receipt", "receipts"],
     ["Create budget", "budgets"],
   ])("dashboard setup action %s navigates to %s", async (label, expectedView) => {
@@ -104,7 +106,7 @@ describe("critical UI workflows", () => {
 
     await user.click(screen.getByRole("button", { name: /Load sample data/i }));
 
-    expect(await screen.findByRole("heading", { name: "Expense Overview" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Money Overview" })).toBeInTheDocument();
     expect(screen.getByText("Based on 3 expenses")).toBeInTheDocument();
     expect(screen.getByLabelText("navigation-state")).toHaveTextContent("active-view:dashboard");
   });
@@ -158,11 +160,24 @@ describe("critical UI workflows", () => {
 
     renderWithProviders(<BudgetManagerView />);
 
-    expect(screen.getByText("No budgets yet")).toBeInTheDocument();
+    expect(screen.getByText("No monthly budgets yet")).toBeInTheDocument();
 
-    await user.click(screen.getAllByRole("button", { name: "Add Budget" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Add Monthly Budget" })[0]);
 
-    expect(screen.getByRole("dialog", { name: "Add Budget" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Add Monthly Budget" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Close dialog" }));
+    await user.click(screen.getByRole("button", { name: "Daily" }));
+    expect(screen.getByText("No daily budgets yet")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Add Daily Budget" })).not.toHaveLength(0);
+
+    await user.click(screen.getByRole("button", { name: "Weekly" }));
+    expect(screen.getByText("No weekly budgets yet")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Add Weekly Budget" })).not.toHaveLength(0);
+
+    await user.click(screen.getByRole("button", { name: "Annual" }));
+    expect(screen.getByText("No annual budgets yet")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Add Annual Budget" })).not.toHaveLength(0);
 
     renderWithFeedback(
       <>
@@ -175,6 +190,8 @@ describe("critical UI workflows", () => {
             remainingAmount: 300,
             percentageUsed: 25,
             status: "Safe",
+            period: "monthly",
+            periodKey: "2026-06",
           }}
           onEditClick={() => undefined}
           onDeleteClick={() => undefined}
@@ -188,6 +205,8 @@ describe("critical UI workflows", () => {
             remainingAmount: 15,
             percentageUsed: 85,
             status: "Warning",
+            period: "monthly",
+            periodKey: "2026-06",
           }}
           onEditClick={() => undefined}
           onDeleteClick={() => undefined}
@@ -201,6 +220,8 @@ describe("critical UI workflows", () => {
             remainingAmount: -20,
             percentageUsed: 120,
             status: "Over Budget",
+            period: "monthly",
+            periodKey: "2026-06",
           }}
           onEditClick={() => undefined}
           onDeleteClick={() => undefined}

@@ -15,6 +15,7 @@ import {
   toFrontendCategory,
 } from "./categoryMapper";
 import { requestJson } from "./httpClient";
+import { requestAllPages } from "./paginatedRequest";
 import { expenseRepository } from "../repositories/expenseRepository.mock";
 
 interface ExpenseResponse {
@@ -35,12 +36,6 @@ interface ExpenseResponse {
   importBatchId: string | null;
   externalTransactionId: string | null;
   recurringTemplateId: string | null;
-}
-
-interface ListExpensesResponse {
-  data: {
-    expenses: ExpenseResponse[];
-  };
 }
 
 interface ExpensePayloadResponse {
@@ -78,8 +73,11 @@ const mockExpenseApi: ExpenseApi = {
 
 const httpExpenseApi: ExpenseApi = {
   async listExpenses() {
-    const response = await requestJson<ListExpensesResponse>("/expenses");
-    return response.data.expenses.map(fromApiExpense);
+    const expenses = await requestAllPages<
+      { expenses: ExpenseResponse[] },
+      ExpenseResponse
+    >("/expenses", (data) => data.expenses);
+    return expenses.map(fromApiExpense);
   },
 
   async createExpense(expense) {

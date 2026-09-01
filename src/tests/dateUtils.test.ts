@@ -3,6 +3,9 @@ import {
   addMonths,
   getCurrentIsoTimestamp,
   getCurrentMonthKey,
+  getCurrentYearKey,
+  getIsoWeekKey,
+  getIsoWeekLabel,
   getMonthLabel,
   getTodayDateString,
   isSameMonth,
@@ -15,6 +18,13 @@ describe("dateUtils helpers", () => {
 
   test("getCurrentMonthKey returns a local month key", () => {
     expect(getCurrentMonthKey(new Date(2025, 10, 3, 9, 45))).toBe("2025-11");
+  });
+
+  test("returns calendar-year and ISO-week keys", () => {
+    expect(getCurrentYearKey(new Date(2025, 10, 3))).toBe("2025");
+    expect(getIsoWeekKey("2026-06-01")).toBe("2026-W23");
+    expect(getIsoWeekKey("2025-12-29")).toBe("2026-W01");
+    expect(getIsoWeekLabel("2026-W23")).toBe("Week 23, 2026");
   });
 
   test("getMonthLabel formats properly", () => {

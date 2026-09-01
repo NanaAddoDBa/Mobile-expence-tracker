@@ -1,6 +1,7 @@
 # Currency Strategy
 
-Currency handling should be designed before real backend persistence or account import begins. Backend V1 should be simple and deterministic: EUR first, integer minor units, no implicit FX conversion.
+The implemented backend is deliberately EUR-only: integer minor units and no
+implicit FX conversion.
 
 ## Money Storage Rule
 
@@ -34,7 +35,7 @@ convertedCurrency?: string;
 
 Use a decimal string for exchange rates to avoid floating-point drift.
 
-## Backend V1 Rule
+## Current Rule
 
 For Backend V1:
 
@@ -42,7 +43,7 @@ For Backend V1:
 User base currency = EUR
 Budgets are EUR only
 EUR expenses count toward budgets
-Non-EUR expenses are stored but excluded from budget totals until FX support exists
+Non-EUR ledger writes and bank imports are rejected or skipped until FX support exists
 ```
 
 This avoids silently mixing currencies.
@@ -54,19 +55,20 @@ Every persisted money field should store currency next to the amount:
 - Expense `amountMinor` and `currency`.
 - Budget `limitAmountMinor` and `currency`.
 - Goal `targetAmountMinor`, `currentAmountMinor`, and `currency`.
-- Future imported transaction amount and currency.
+- Imported transaction `amountMinor` and `currency`.
 
 Do not infer currency from locale, user profile, or provider alone.
 
 ## Frontend Display
 
-The frontend should display money with locale-aware formatting, but calculations should use backend-provided minor-unit values when real APIs exist.
-
-The current frontend may continue using decimal amounts for mock-only UI state until the backend API boundary introduces minor-unit payloads.
+The frontend displays money with locale-aware formatting and maps decimal form
+values to integer-minor-unit API payloads. Financial totals come from
+server-backed ledger data.
 
 ## Import Rule
 
-Imported transactions must preserve provider currency:
+Imported source transactions preserve provider currency, but the current ledger
+materializes EUR transactions only:
 
 - Store original amount and currency.
 - Normalize category separately from currency.
@@ -76,7 +78,8 @@ Imported transactions must preserve provider currency:
 
 Budgets should explicitly include currency.
 
-If a user has EUR budgets and imports a non-EUR expense before conversion support exists, that expense should not affect EUR budget progress.
+Non-EUR provider transactions do not create current ledger rows and therefore
+cannot affect EUR budget progress.
 
 ## Future FX Placeholder
 
@@ -89,4 +92,5 @@ Future FX support should define:
 - Rounding behavior.
 - Whether converted values affect budgets.
 
-Until that exists, store non-EUR expenses later as original values and exclude them from EUR budget totals.
+Until that exists, do not mix non-EUR values into the active ledger, budgets,
+goals, cash-flow totals, or balance summaries.

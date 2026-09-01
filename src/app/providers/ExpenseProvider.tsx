@@ -10,7 +10,12 @@ import {
 } from "../../features/demo/services/sampleDataService";
 import { createManualExpenseSource } from "../../features/expenses/services/expenseSourceService";
 import { notificationService } from "../../features/notifications/services/notificationService";
-import { getCurrentMonthKey } from "../../lib/dateUtils";
+import {
+  getCurrentMonthKey,
+  getCurrentYearKey,
+  getIsoWeekKey,
+  getTodayDateString,
+} from "../../lib/dateUtils";
 import { expenseApi } from "../../services/api";
 import { USES_HTTP_API } from "../../services/api/apiMode";
 
@@ -69,23 +74,44 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const checkBudgetThresholds = useCallback((updatedExpenses: Expense[], addedCategory: string) => {
     if (!currentUser?.notifications.enableAlerts) return;
 
-    const currentYearMonth = getCurrentMonthKey();
-    const usageDetails = budgetCalculationService.getBudgetUsageForMonth(
-      updatedExpenses,
-      budgets,
-      currentYearMonth
-    );
-    const target = usageDetails.find(
-      (usage) => usage.category.toLowerCase() === addedCategory.toLowerCase()
-    );
-    const notification = notificationService.getBudgetThresholdNotification(
-      target,
-      currentUser.notifications.budgetThreshold
-    );
+    const usageDetails = [
+      ...budgetCalculationService.getBudgetUsageForPeriod(
+        updatedExpenses,
+        budgets,
+        "daily",
+        getTodayDateString(),
+      ),
+      ...budgetCalculationService.getBudgetUsageForPeriod(
+        updatedExpenses,
+        budgets,
+        "weekly",
+        getIsoWeekKey(),
+      ),
+      ...budgetCalculationService.getBudgetUsageForMonth(
+        updatedExpenses,
+        budgets,
+        getCurrentMonthKey(),
+      ),
+      ...budgetCalculationService.getBudgetUsageForPeriod(
+        updatedExpenses,
+        budgets,
+        "annual",
+        getCurrentYearKey(),
+      ),
+    ];
 
-    if (notification) {
-      addNotification(notification);
-    }
+    usageDetails
+      .filter((usage) => usage.category.toLowerCase() === addedCategory.toLowerCase())
+      .forEach((usage) => {
+        const notification = notificationService.getBudgetThresholdNotification(
+          usage,
+          currentUser.notifications.budgetThreshold,
+        );
+
+        if (notification) {
+          addNotification(notification);
+        }
+      });
   }, [addNotification, budgets, currentUser]);
 
   const value = useMemo<ExpenseContextType>(() => {

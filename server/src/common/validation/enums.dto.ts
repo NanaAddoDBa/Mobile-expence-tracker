@@ -29,6 +29,19 @@ export enum ExpenseCategory {
   OTHER = "other",
 }
 
+export enum IncomeCategory {
+  SALARY = "salary",
+  FREELANCE = "freelance",
+  BUSINESS = "business",
+  INVESTMENT = "investment",
+  BENEFITS = "benefits",
+  GIFT = "gift",
+  REFUND = "refund",
+  REIMBURSEMENT = "reimbursement",
+  TRANSFERS = "transfers",
+  OTHER = "other",
+}
+
 export enum RecurringFrequency {
   DAILY = "daily",
   WEEKLY = "weekly",
@@ -42,6 +55,13 @@ export enum GoalStatus {
   COMPLETED = "completed",
   PAUSED = "paused",
   ARCHIVED = "archived",
+}
+
+export enum BudgetPeriod {
+  DAILY = "daily",
+  WEEKLY = "weekly",
+  MONTHLY = "monthly",
+  ANNUAL = "annual",
 }
 
 export enum CurrencyCode {

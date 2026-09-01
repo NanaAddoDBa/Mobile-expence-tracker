@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { compare, hash } from "bcryptjs";
-import { SESSION_TOKEN_BYTES } from "./constants";
+import { ACCOUNT_TOKEN_BYTES, SESSION_TOKEN_BYTES } from "./constants";
 
 export function hashPassword(
   password: string,
@@ -21,5 +21,13 @@ export function generateSessionToken(): string {
 }
 
 export function hashSessionToken(token: string): string {
+  return createHash("sha256").update(token, "utf8").digest("hex");
+}
+
+export function generateAccountToken(): string {
+  return randomBytes(ACCOUNT_TOKEN_BYTES).toString("base64url");
+}
+
+export function hashAccountToken(token: string): string {
   return createHash("sha256").update(token, "utf8").digest("hex");
 }

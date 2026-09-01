@@ -1,5 +1,8 @@
-import { Budget } from "../../../domain/budgets/budget.types";
-import { calculateBudgetUsage } from "../../../domain/budgets/budget.rules";
+import { Budget, BudgetPeriod } from "../../../domain/budgets/budget.types";
+import {
+  calculateBudgetUsage,
+  getBudgetsForPeriod,
+} from "../../../domain/budgets/budget.rules";
 import { Expense } from "../../../domain/expenses/expense.types";
 
 export interface OverallBudgetSummary {
@@ -19,13 +22,27 @@ export function getBudgetUsageForMonth(
   return calculateBudgetUsage(expenses, budgets, monthKey);
 }
 
+export function getBudgetUsageForPeriod(
+  expenses: Expense[],
+  budgets: Budget[],
+  period: BudgetPeriod,
+  periodKey: string,
+) {
+  return calculateBudgetUsage(expenses, budgets, periodKey, period);
+}
+
 export function calculateOverallBudgetSummary(
   expenses: Expense[],
   budgets: Budget[],
-  monthKey: string
+  periodKey: string,
+  period: BudgetPeriod = "monthly",
 ): OverallBudgetSummary {
-  const usage = getBudgetUsageForMonth(expenses, budgets, monthKey);
-  const totalLimitAmount = budgets.reduce((sum, budget) => sum + budget.limitAmount, 0);
+  const usage = getBudgetUsageForPeriod(expenses, budgets, period, periodKey);
+  const activeBudgets = getBudgetsForPeriod(budgets, period, periodKey);
+  const totalLimitAmount = activeBudgets.reduce(
+    (sum, budget) => sum + budget.limitAmount,
+    0,
+  );
   const totalSpentAmount = usage.reduce((sum, detail) => sum + detail.spentAmount, 0);
   const totalRemainingAmount = Math.max(0, totalLimitAmount - totalSpentAmount);
 
@@ -43,5 +60,6 @@ export function calculateOverallBudgetSummary(
 export const budgetCalculationService = {
   calculateOverallBudgetSummary,
   getUsageDetails: getBudgetUsageForMonth,
+  getBudgetUsageForPeriod,
   getBudgetUsageForMonth,
 };

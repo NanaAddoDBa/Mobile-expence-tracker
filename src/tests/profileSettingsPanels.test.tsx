@@ -241,11 +241,16 @@ describe("profile and settings panels", () => {
     render(<ProfileSettingsView />);
 
     await user.click(screen.getByRole("tab", { name: "Security" }));
-    expect(screen.getByText("Security controls are mock-only in this frontend version. No real account credentials are stored.")).toBeTruthy();
-    expect(screen.getAllByText("Coming later").length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(
+        "Account security controls are available when the server API is enabled."
+      )
+    ).toBeTruthy();
 
     await user.click(screen.getByRole("tab", { name: "Privacy" }));
-    expect(screen.getByText("This app uses local mock data. Connected account access is simulated, read-only, and never reaches a real bank.")).toBeTruthy();
+    expect(
+      screen.getByText("This mode stores mock data only in this browser.")
+    ).toBeTruthy();
 
     await user.click(screen.getByRole("tab", { name: "Accessibility" }));
     expect(screen.getByLabelText("Larger text")).toBeTruthy();

@@ -3,10 +3,12 @@ import { ConnectedAccount } from "../domain/accounts/account.types";
 import { Budget } from "../domain/budgets/budget.types";
 import { Expense } from "../domain/expenses/expense.types";
 import { Goal } from "../domain/goals/goal.types";
+import { Income } from "../domain/incomes/income.types";
 import { createAccountRepository } from "../services/repositories/accountRepository.mock";
 import { createBudgetRepository } from "../services/repositories/budgetRepository.mock";
 import { createExpenseRepository } from "../services/repositories/expenseRepository.mock";
 import { createGoalRepository } from "../services/repositories/goalRepository.mock";
+import { createIncomeRepository } from "../services/repositories/incomeRepository.mock";
 import { createMemoryStorageAdapter } from "../services/storage/memoryStorageAdapter";
 
 const expense: Expense = {
@@ -25,6 +27,21 @@ const budget: Budget = {
   id: "budget-1",
   category: "Food & Grocery",
   limitAmount: 400,
+  period: "monthly",
+  periodKey: "2026-06",
+};
+
+const income: Income = {
+  id: "income-1",
+  source: "Example Employer",
+  description: "Monthly salary",
+  amount: 3000,
+  date: "2026-06-01",
+  category: "Salary",
+  accountSource: "manual",
+  paymentMethod: "bank_transfer",
+  isRecurring: true,
+  recurringFrequency: "monthly",
 };
 
 const goal: Goal = {
@@ -59,9 +76,18 @@ describe("storage adapters and mock repositories", () => {
 
   test("product data repositories start empty when no local data exists", () => {
     expect(createExpenseRepository(createMemoryStorageAdapter()).getAll()).toEqual([]);
+    expect(createIncomeRepository(createMemoryStorageAdapter()).getAll()).toEqual([]);
     expect(createBudgetRepository(createMemoryStorageAdapter()).getAll()).toEqual([]);
     expect(createGoalRepository(createMemoryStorageAdapter()).getAll()).toEqual([]);
     expect(createAccountRepository(createMemoryStorageAdapter()).getAll()).toEqual([]);
+  });
+
+  test("income repository persists through an injected storage adapter", () => {
+    const repository = createIncomeRepository(createMemoryStorageAdapter());
+
+    repository.saveAll([income]);
+
+    expect(repository.getAll()).toEqual([income]);
   });
 
   test("expense repository persists through an injected storage adapter", () => {
@@ -81,6 +107,24 @@ describe("storage adapters and mock repositories", () => {
 
     expect(budgetRepository.getAll()).toEqual([budget]);
     expect(goalRepository.getAll()).toEqual([goal]);
+  });
+
+  test("normalizes legacy browser budgets as monthly budgets", () => {
+    const storage = createMemoryStorageAdapter();
+    storage.setItem("exp_budgets", JSON.stringify([{
+      id: "legacy-budget",
+      category: "Food & Grocery",
+      limitAmount: 300,
+      monthKey: "2026-05",
+    }]));
+
+    expect(createBudgetRepository(storage).getAll()).toEqual([{
+      id: "legacy-budget",
+      category: "Food & Grocery",
+      limitAmount: 300,
+      period: "monthly",
+      periodKey: "2026-05",
+    }]);
   });
 
   test("account repository persists connected accounts through injected storage", () => {

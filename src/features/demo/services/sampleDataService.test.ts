@@ -5,6 +5,7 @@ import {
   createSampleData,
   createSampleExpenses,
   createSampleGoals,
+  createSampleIncomes,
   mergeSampleRecords,
 } from "./sampleDataService";
 
@@ -54,6 +55,19 @@ describe("sampleDataService", () => {
     expect(accounts.every((account) => account.lastImportedAt === "2027-03-10T12:00:00.000Z")).toBe(true);
   });
 
+  test("creates current sample income entries", () => {
+    const incomes = createSampleIncomes(new Date(2027, 2, 10));
+
+    expect(incomes).toHaveLength(3);
+    expect(incomes.filter((income) => income.date.startsWith("2027-03"))).toHaveLength(2);
+    expect(incomes.filter((income) => income.date.startsWith("2027-02"))).toHaveLength(1);
+    expect(incomes[0]).toMatchObject({
+      source: "Example Employer",
+      category: "Salary",
+      amount: 3200,
+    });
+  });
+
   test("creates current sample goals with future target dates", () => {
     const goals = createSampleGoals(new Date(2027, 2, 10));
 
@@ -70,15 +84,18 @@ describe("sampleDataService", () => {
   });
 
   test("creates budgets and full sample data without sharing fixture objects", () => {
-    const budgets = createSampleBudgets();
+    const budgets = createSampleBudgets(new Date(2027, 2, 10));
     const sampleData = createSampleData(new Date(2027, 2, 10));
 
     expect(budgets).toHaveLength(10);
     expect(sampleData.expenses).toHaveLength(14);
+    expect(sampleData.incomes).toHaveLength(3);
     expect(sampleData.budgets).toHaveLength(10);
     expect(sampleData.goals).toHaveLength(3);
     expect(sampleData.accounts).toHaveLength(2);
-    expect(budgets[0]).not.toBe(createSampleBudgets()[0]);
+    expect(budgets.every((budget) => budget.period === "monthly")).toBe(true);
+    expect(budgets.every((budget) => budget.periodKey === "2027-03")).toBe(true);
+    expect(budgets[0]).not.toBe(createSampleBudgets(new Date(2027, 2, 10))[0]);
   });
 
   test("merges sample records without duplicating refreshed sample ids", () => {

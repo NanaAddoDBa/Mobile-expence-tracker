@@ -1,5 +1,5 @@
 import React from "react";
-import { Database, Link2, PlusCircle, ScanLine, ShieldCheck, Sliders } from "lucide-react";
+import { CircleDollarSign, Database, Link2, PlusCircle, ScanLine, ShieldCheck, Sliders } from "lucide-react";
 import { ActiveView } from "../../../app/providers/AppNavigationProvider";
 import { Button } from "../../../components/ui/Button";
 import { Card } from "../../../components/ui/Card";
@@ -23,8 +23,14 @@ const actions: {
     icon: <PlusCircle className="w-5 h-5" />,
   },
   {
-    label: "Connect mock account",
-    description: "Use a read-only mock connection to import sample expenses.",
+    label: "Add first income",
+    description: "Record salary or another inflow.",
+    targetView: "income",
+    icon: <CircleDollarSign className="w-5 h-5" />,
+  },
+  {
+    label: "Connect bank account",
+    description: "Connect a bank to import transactions.",
     targetView: "profile",
     icon: <Link2 className="w-5 h-5" />,
   },
@@ -36,7 +42,7 @@ const actions: {
   },
   {
     label: "Create budget",
-    description: "Set a monthly category budget and track spending.",
+    description: "Set daily, weekly, monthly, or annual category budgets.",
     targetView: "budgets",
     icon: <Sliders className="w-5 h-5" />,
   },
@@ -58,7 +64,7 @@ export const DashboardSetupEmptyState: React.FC<DashboardSetupEmptyStateProps> =
     })),
     {
       label: "Load sample data",
-      description: "Add demo expenses, budgets, and goals to explore the app.",
+      description: "Add demo income, expenses, budgets, and goals to explore the app.",
       icon: <Database className="w-5 h-5" />,
       onSelect: onLoadSampleData,
     },
@@ -73,13 +79,13 @@ export const DashboardSetupEmptyState: React.FC<DashboardSetupEmptyStateProps> =
               <ShieldCheck className="w-8 h-8" />
             </div>
             <h2 className="text-xl font-bold text-slate-950 dark:text-white tracking-tight">
-              Set up your expense tracker
+              Set up your money tracker
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
               Start clean, add your own data, or load sample data to explore the app.
             </p>
             <p className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs leading-relaxed text-slate-500 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-400">
-              This app uses mock data and mock services. It does not move money, connect to real banks, or control payments.
+              Bank access is read-only. The app tracks transactions but cannot move money or make payments.
             </p>
           </div>
 

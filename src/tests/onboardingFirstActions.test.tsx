@@ -88,12 +88,12 @@ describe("onboarding first actions", () => {
     await expectOnboardingCompleted();
   });
 
-  test("Load sample data completes onboarding and opens Expense Overview", async () => {
+  test("Load sample data completes onboarding and opens Money Overview", async () => {
     const user = await reachFirstActionScreen();
 
     await user.click(screen.getByRole("button", { name: /Load sample data/i }));
 
-    expect(await screen.findByRole("heading", { name: "Expense Overview" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Money Overview" })).toBeInTheDocument();
     expect(screen.getByText("Based on 3 expenses")).toBeInTheDocument();
     await expectOnboardingCompleted();
   });
@@ -103,7 +103,7 @@ describe("onboarding first actions", () => {
 
     await user.click(screen.getByRole("button", { name: "Skip for now" }));
 
-    expect(await screen.findByRole("heading", { name: "Set up your expense tracker" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Set up your money tracker" })).toBeInTheDocument();
     await expectOnboardingCompleted();
   });
 });

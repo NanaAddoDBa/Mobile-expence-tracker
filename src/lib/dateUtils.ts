@@ -18,6 +18,47 @@ export function getCurrentMonthKey(date: Date = new Date()): string {
 }
 
 /**
+ * Returns the calendar year in YYYY format.
+ */
+export function getCurrentYearKey(date: Date = new Date()): string {
+  return String(date.getFullYear());
+}
+
+/**
+ * Returns an ISO week key in YYYY-Www format for a local date or YYYY-MM-DD value.
+ */
+export function getIsoWeekKey(date: Date | string = new Date()): string {
+  let target: Date;
+
+  if (typeof date === "string") {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "";
+    const [year, month, day] = date.split("-").map(Number);
+    target = new Date(Date.UTC(year, month - 1, day));
+    if (target.toISOString().slice(0, 10) !== date) return "";
+  } else {
+    target = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  }
+
+  const day = target.getUTCDay() || 7;
+  target.setUTCDate(target.getUTCDate() + 4 - day);
+  const isoYear = target.getUTCFullYear();
+  const yearStart = new Date(Date.UTC(isoYear, 0, 1));
+  const week = Math.ceil(
+    ((target.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7,
+  );
+
+  return `${isoYear}-W${String(week).padStart(2, "0")}`;
+}
+
+/**
+ * Formats an ISO week key as a concise user-facing label.
+ */
+export function getIsoWeekLabel(weekKey: string): string {
+  const match = /^(\d{4})-W(\d{2})$/.exec(weekKey);
+  return match ? `Week ${Number(match[2])}, ${match[1]}` : weekKey;
+}
+
+/**
  * Formats a YYYY-MM key, YYYY-MM-DD string, or Date to a labeled month.
  */
 export function getMonthLabel(monthKeyOrDate?: string | Date): string {
@@ -57,6 +98,13 @@ export function isSameMonth(dateString: string, monthKey: string): boolean {
   }
 
   return dateString.slice(0, 7) === monthKey;
+}
+
+/**
+ * Checks whether a local YYYY-MM-DD date belongs to an ISO YYYY-Www week.
+ */
+export function isSameIsoWeek(dateString: string, weekKey: string): boolean {
+  return getIsoWeekKey(dateString) === weekKey;
 }
 
 /**

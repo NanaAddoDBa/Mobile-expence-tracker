@@ -2,10 +2,12 @@ import { INITIAL_ACCOUNTS } from "../../../data/mockAccounts";
 import { INITIAL_BUDGETS } from "../../../data/mockBudgets";
 import { INITIAL_EXPENSES } from "../../../data/mockExpenses";
 import { INITIAL_GOALS } from "../../../data/mockGoals";
+import { INITIAL_INCOMES } from "../../../data/mockIncomes";
 import { ConnectedAccount } from "../../../domain/accounts/account.types";
 import { Budget } from "../../../domain/budgets/budget.types";
 import { Expense } from "../../../domain/expenses/expense.types";
 import { Goal } from "../../../domain/goals/goal.types";
+import { Income } from "../../../domain/incomes/income.types";
 import {
   addMonths,
   getCurrentIsoTimestamp,
@@ -19,6 +21,7 @@ const SAMPLE_CURRENT_MONTH = "2026-06";
 
 export interface SampleDataSet {
   expenses: Expense[];
+  incomes: Income[];
   budgets: Budget[];
   goals: Goal[];
   accounts: ConnectedAccount[];
@@ -27,10 +30,21 @@ export interface SampleDataSet {
 export function createSampleData(referenceDate: Date = new Date()): SampleDataSet {
   return {
     expenses: createSampleExpenses(referenceDate),
-    budgets: createSampleBudgets(),
+    incomes: createSampleIncomes(referenceDate),
+    budgets: createSampleBudgets(referenceDate),
     goals: createSampleGoals(referenceDate),
     accounts: createSampleAccounts(referenceDate),
   };
+}
+
+export function createSampleIncomes(referenceDate: Date = new Date()): Income[] {
+  const currentMonthKey = getCurrentMonthKey(referenceDate);
+  const previousMonthKey = getCurrentMonthKey(addMonths(referenceDate, -1));
+
+  return INITIAL_INCOMES.map((income) => ({
+    ...income,
+    date: remapSampleDate(income.date, currentMonthKey, previousMonthKey),
+  }));
 }
 
 export function createSampleExpenses(referenceDate: Date = new Date()): Expense[] {
@@ -45,8 +59,9 @@ export function createSampleExpenses(referenceDate: Date = new Date()): Expense[
   );
 }
 
-export function createSampleBudgets(): Budget[] {
-  return INITIAL_BUDGETS.map((budget) => ({ ...budget }));
+export function createSampleBudgets(referenceDate: Date = new Date()): Budget[] {
+  const periodKey = getCurrentMonthKey(referenceDate);
+  return INITIAL_BUDGETS.map((budget) => ({ ...budget, periodKey }));
 }
 
 export function createSampleAccounts(referenceDate: Date = new Date()): ConnectedAccount[] {

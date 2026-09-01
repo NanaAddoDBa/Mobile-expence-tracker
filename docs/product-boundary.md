@@ -1,6 +1,9 @@
 # Product Boundary
 
-Expense Tracker & Budget Manager is a spending awareness product. It should help users record expenses, review spending, create budgets, track savings goals, scan receipts, and import read-only transaction data when a backend integration exists.
+Expense Tracker & Budget Manager is a spending awareness product. It helps
+users record income and expenses, review cash flow, create budgets, track
+savings goals, and import read-only transaction data. Receipt scanning remains
+a mock review feature until a secure backend upload/OCR service is implemented.
 
 The product must stay clearly scoped. It is not a banking control app, payment app, investment platform, tax tool, legal tool, or regulated advice product.
 
@@ -36,24 +39,31 @@ The app must not:
 - Store real banking credentials in the frontend.
 - Store provider access tokens in browser local storage.
 
-## Current Frontend Boundary
+## Current Application Boundary
 
-The current app is a mock-only frontend. Connected accounts are simulated. Receipt scanning uses mock OCR data. Authentication is local mock authentication. Local storage is only suitable for development and demonstration data.
+The React client uses the NestJS/PostgreSQL API for authentication, profile and
+settings, income, expenses, cash flow, budgets, goals, privacy operations, and
+connected accounts. GoCardless Bank Account Data provides the implemented
+read-only consent and transaction-import path when enabled.
 
-## Future Backend Boundary
+The backend currently supports:
 
-The first real backend milestone should support user-owned manual data only:
-
-- Register and log in.
+- Register, verify email, log in, recover/change a password, and manage sessions.
+- Sign in with a verified Google identity.
 - Manage user settings.
+- Create, edit, list, and delete income.
 - Create, edit, list, and delete expenses.
 - Create, edit, list, and delete budgets.
 - Create, edit, list, and delete goals.
+- Review net cash flow and savings rate.
+- Connect, sync, reconnect, and disconnect read-only bank accounts.
 - Export user data.
 - Delete account data.
 - Record audit logs for sensitive actions.
 
-Open Banking should be added later as read-only account information access. Payment initiation is outside the product boundary.
+The receipt UI still uses mock OCR data and must be presented that way. Real
+receipt storage/OCR and automated notification delivery are outside the current
+backend. Payment initiation remains outside the product boundary.
 
 ## UX Boundary
 

@@ -3,12 +3,21 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { User, UserStatus } from "@prisma/client";
+import {
+  AuthIdentity,
+  AuthProvider,
+  User,
+  UserStatus,
+} from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { hashPassword } from "./auth.crypto";
 import { AuthService } from "./auth.service";
 
 interface PrismaMock {
+  authIdentity: {
+    findUnique: jest.Mock;
+    create: jest.Mock;
+  };
   user: {
     findUnique: jest.Mock;
     create: jest.Mock;
@@ -44,6 +53,10 @@ function createUser(overrides: Partial<User> = {}): User {
 
 function createPrismaMock(): PrismaMock {
   const prisma: PrismaMock = {
+    authIdentity: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+    },
     user: {
       findUnique: jest.fn(),
       create: jest.fn(),
@@ -66,6 +79,23 @@ function createPrismaMock(): PrismaMock {
   );
 
   return prisma;
+}
+
+function createAuthIdentity(
+  overrides: Partial<AuthIdentity> = {},
+): AuthIdentity {
+  const now = new Date();
+
+  return {
+    id: "identity-1",
+    userId: "user-1",
+    provider: AuthProvider.GOOGLE,
+    providerSubject: "google-subject-1",
+    providerEmail: "user@example.com",
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  };
 }
 
 function createConfigMock(): ConfigService {
@@ -136,6 +166,113 @@ describe("AuthService", () => {
       message: "Invalid email or password",
     });
 
+    expect(prisma.session.create).not.toHaveBeenCalled();
+  });
+
+  it("creates a passwordless account for a new Google identity", async () => {
+    const prisma = createPrismaMock();
+    const createdUser = createUser({
+      email: "google.user@example.com",
+      name: "Google User",
+      emailVerifiedAt: new Date(),
+      lastLoginAt: new Date(),
+    });
+    prisma.authIdentity.findUnique.mockResolvedValue(null);
+    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.user.create.mockResolvedValue(createdUser);
+    prisma.authIdentity.create.mockResolvedValue(
+      createAuthIdentity({
+        providerSubject: "google-subject-new",
+        providerEmail: createdUser.email,
+      }),
+    );
+    prisma.session.create.mockResolvedValue({});
+    const service = new AuthService(
+      prisma as unknown as PrismaService,
+      createConfigMock(),
+    );
+
+    const result = await service.authenticateWithGoogle(
+      {
+        subject: "google-subject-new",
+        email: "GOOGLE.USER@example.com",
+        name: "Google User",
+      },
+      {},
+    );
+
+    expect(result.isNewUser).toBe(true);
+    expect(result.user.email).toBe("google.user@example.com");
+    expect(prisma.user.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        email: "google.user@example.com",
+        passwordHash: null,
+        emailVerifiedAt: expect.any(Date),
+      }),
+    });
+    expect(prisma.authIdentity.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        provider: AuthProvider.GOOGLE,
+        providerSubject: "google-subject-new",
+        userId: createdUser.id,
+      }),
+    });
+    expect(prisma.session.create).toHaveBeenCalled();
+  });
+
+  it("signs in the user linked to a returning Google identity", async () => {
+    const prisma = createPrismaMock();
+    const user = createUser();
+    prisma.authIdentity.findUnique.mockResolvedValue(createAuthIdentity());
+    prisma.user.findUnique.mockResolvedValue(user);
+    prisma.user.update.mockResolvedValue({
+      ...user,
+      lastLoginAt: new Date(),
+    });
+    prisma.session.create.mockResolvedValue({});
+    const service = new AuthService(
+      prisma as unknown as PrismaService,
+      createConfigMock(),
+    );
+
+    const result = await service.authenticateWithGoogle(
+      {
+        subject: "google-subject-1",
+        email: user.email,
+        name: user.name,
+      },
+      {},
+    );
+
+    expect(result.isNewUser).toBe(false);
+    expect(result.user.id).toBe(user.id);
+    expect(prisma.user.create).not.toHaveBeenCalled();
+    expect(prisma.session.create).toHaveBeenCalled();
+  });
+
+  it("does not automatically link Google to an existing password account", async () => {
+    const prisma = createPrismaMock();
+    prisma.authIdentity.findUnique.mockResolvedValue(null);
+    prisma.user.findUnique.mockResolvedValue(
+      createUser({ passwordHash: "existing-password-hash" }),
+    );
+    const service = new AuthService(
+      prisma as unknown as PrismaService,
+      createConfigMock(),
+    );
+
+    await expect(
+      service.authenticateWithGoogle(
+        {
+          subject: "unlinked-google-subject",
+          email: "user@example.com",
+          name: "Sample User",
+        },
+        {},
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(prisma.authIdentity.create).not.toHaveBeenCalled();
     expect(prisma.session.create).not.toHaveBeenCalled();
   });
 });

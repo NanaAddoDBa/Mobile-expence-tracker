@@ -1,5 +1,4 @@
 import { Budget, CreateBudgetModel, UpdateBudgetModel } from "../../domain/budgets/budget.types";
-import { getCurrentMonthKey } from "../../lib/dateUtils";
 import { BudgetApi } from "./api.types";
 import { USES_HTTP_API } from "./apiMode";
 import {
@@ -15,7 +14,8 @@ interface BudgetResponse {
   category: ApiExpenseCategory;
   limitAmountMinor: number;
   currency: "EUR";
-  monthKey: string;
+  period: "daily" | "weekly" | "monthly" | "annual";
+  periodKey: string;
 }
 
 interface ListBudgetsResponse {
@@ -55,10 +55,7 @@ const mockBudgetApi: BudgetApi = {
 
 const httpBudgetApi: BudgetApi = {
   async listBudgets() {
-    const monthKey = getCurrentMonthKey();
-    const response = await requestJson<ListBudgetsResponse>(
-      `/budgets?monthKey=${encodeURIComponent(monthKey)}`
-    );
+    const response = await requestJson<ListBudgetsResponse>("/budgets");
     return response.data.budgets.map(fromApiBudget);
   },
 
@@ -115,7 +112,8 @@ function fromApiBudget(budget: BudgetResponse): Budget {
     category: toFrontendCategory(budget.category),
     limitAmount: budget.limitAmountMinor / 100,
     currency: budget.currency,
-    monthKey: budget.monthKey,
+    period: budget.period,
+    periodKey: budget.periodKey,
   };
 }
 
@@ -129,7 +127,8 @@ function toApiBudgetPayload(
     ...(budget.limitAmount === undefined
       ? {}
       : { limitAmountMinor: Math.round(budget.limitAmount * 100) }),
-    currency: "EUR",
-    monthKey: budget.monthKey ?? getCurrentMonthKey(),
+    ...(budget.currency === undefined ? {} : { currency: "EUR" }),
+    ...(budget.period === undefined ? {} : { period: budget.period }),
+    ...(budget.periodKey === undefined ? {} : { periodKey: budget.periodKey }),
   };
 }
