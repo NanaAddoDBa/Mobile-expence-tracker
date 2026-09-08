@@ -393,6 +393,22 @@ describe("Auth API (e2e)", () => {
     });
   });
 
+  it("applies controller-level throttling to auth endpoints", async () => {
+    for (let i = 0; i < 30; i++) {
+      await request(app.getHttpServer())
+        .get("/api/auth/me")
+        .expect(401);
+    }
+
+    const response = await request(app.getHttpServer())
+      .get("/api/auth/me")
+      .expect(429);
+
+    expect(response.body.error).toMatchObject({
+      code: "RATE_LIMITED",
+    });
+  });
+
   it("logs out, clears the cookie, and revokes the session", async () => {
     const agent = request.agent(app.getHttpServer());
 
