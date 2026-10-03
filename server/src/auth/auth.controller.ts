@@ -63,6 +63,7 @@ interface SuccessPayload {
 }
 
 @Controller("auth")
+@Throttle({ default: { limit: 30, ttl: 60_000 } })
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
